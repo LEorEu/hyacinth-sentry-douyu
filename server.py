@@ -19,7 +19,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .collector import Collector
 from .db import Store
-from .gifts import fetch_gift_catalog
+from .gifts import fetch_gift_catalog, fetch_pandora_catalog
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ STATIC_DIR = Path(__file__).parent / "static"
 BETARD_URL = "https://www.douyu.com/betard/{rid}"
 BETARD_INTERVAL = 8.0  # seconds; just for "随便扫一眼" — no need to spam
 
-app = FastAPI(title="主播手记")
+app = FastAPI(title="Hyacinth Sentry (风信子哨兵)")
 store = Store(DB_PATH)
 
 
@@ -183,7 +183,8 @@ async def _startup() -> None:
         log.error("DOUYU_ROOM_ID is not set; collector will NOT start")
         return
     catalog = await fetch_gift_catalog(ROOM_ID)
-    collector = Collector(ROOM_ID, _on_event, gift_catalog=catalog)
+    pandora = await fetch_pandora_catalog(ROOM_ID)
+    collector = Collector(ROOM_ID, _on_event, gift_catalog=catalog, pandora_catalog=pandora)
     collector.start()
     _betard_task = asyncio.create_task(_betard_loop(), name=f"betard-{ROOM_ID}")
     log.info("collector started for room %d, db=%s", ROOM_ID, DB_PATH)

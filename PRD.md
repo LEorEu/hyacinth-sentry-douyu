@@ -1,8 +1,8 @@
-# 主播手记 — 需求与设计
+# Hyacinth Sentry (风信子哨兵) — 需求与设计
 
-- 项目代号:**主播手记**
-- 目标用户:斗鱼户外直播主播 + 同房间观众(只读)
-- 文档状态:v0.4(2026-05-09)
+- 项目代号: **Hyacinth Sentry (风信子哨兵)**
+- 目标用户: 斗鱼户外直播主播 + 同房间观众(只读)
+- 文档状态: v0.5(2026-05-09)
 
 ---
 
@@ -30,16 +30,35 @@
 
 **单 feed 视觉,DOM 内部分两段管理**:
 
-- **永久段(DOM 头部)**:≥ 100 鱼翅 的礼物 + 钻粉/贵族订阅;按时间倒序,永不淡出
+- **永久段(DOM 头部)**:≥ 100 鱼翅 等效价值的礼物 + 钻粉/贵族订阅;按时间倒序,永不淡出
 - **瞬时段(紧随其后)**:阈值 ≤ 价格 < 100 鱼翅的礼物;按时间倒序,**30 分钟 TTL** 后自动从 feed 移除(不动 DB)
 
 视觉上是一个连续的时间倒序列表,两段之间有一条细虚线作为分隔提示。永久段的卡片左边框加粗 + 染红,让主播一眼可辨。
 
-**阈值过滤整列**:低于阈值的礼物**根本不进 feed**(永久段 / 瞬时段都不进)。阈值默认 **6 鱼翅**(办卡价值),UI 输入框可调,写入 `localStorage.prefs.gift_threshold_yuchi`。阈值调整会立即移除瞬时段中已不达标的卡片;永久段不动(≥100 永远 ≥ 任何合理阈值)。
+**等效鱼翅 (effective_yuchi)** 是分档与过滤的核心指标:
+
+```
+effective_yuchi = max(price_yuchi, intimacy / 10)
+```
+
+亲密度按 1:10 折算为鱼翅(用户拍板的折算系数,源自"抱元守一 1000 亲密度 ≈ 钻粉飞机 100 鱼翅"的视觉等价)。这样乾坤袋抽出的亲密度礼物能与同档真鱼翅礼物自动归到同一颜色档。
+
+**显示规则**(主播视角):
+
+| 礼物来源 | price_yuchi | intimacy | 显示 | 颜色档 |
+|---|---|---|---|---|
+| 钻粉飞机 (买) | 100 | 1000 | "100 鱼翅" | 100鱼翅档 |
+| 抱元守一 (乾坤袋抽中) | 0 | 1000 | "1000 亲密度" | 100鱼翅档(同上) |
+| 超大丸星 (鱼丸购) | 0 | 1000 | "1000 亲密度" | 100鱼翅档 |
+| 山海有灵 (乾坤袋抽中) | 0 | 60 | "60 亲密度" | 6鱼翅档 |
+
+**阈值过滤整列**:`effective_yuchi < 阈值` 的礼物**根本不进 feed**(永久段 / 瞬时段都不进)。阈值默认 **6 鱼翅**(办卡价值),UI 输入框可调,写入 `localStorage.prefs.gift_threshold_yuchi`。
+
+**collector 层硬过滤**:`STORE_THRESHOLD_YUCHI = 6.0`,`effective_yuchi * count < 6` 的礼物**直接 drop,不入 DB 也不广播**。这层是为了防止 ID 自增膨胀(SQLite AUTOINCREMENT 严格单调,删老数据无效),把"赞 0.1 鱼翅"这类海量噪音从源头挡掉。catalog 完全未收录的新礼物 (`price_type=None && pid 不在 pandora 池`) 走安全网保留。
 
 新礼物 / 订阅到来时:
 - 屏幕角标闪烁 3s(默认开)
-- 震动通知(待开发):≥100 鱼翅触发 `navigator.vibrate`,主播手机锁屏放兜里也能感觉到
+- 震动通知(待开发):≥100 鱼翅等效触发 `navigator.vibrate`,主播手机锁屏放兜里也能感觉到
 
 订阅事件视为永久段(无价格但价值高)。
 
@@ -146,12 +165,23 @@ header 实时显示:
 | 列 | 类型 | 含义 |
 |---|---|---|
 | `kind` | TEXT | `gift` / `superchat` / `subscription` / `chat`(不入库) / `hot_barrage`(不入库) / `vip_info`(不入库) |
-| `price_yuchi` | REAL | 鱼翅(已 ÷100 转成真值;`赞` 这种 0.1 也保留精度) |
+| `price_yuchi` | REAL | **真鱼翅**(YUCHI 礼物的 ÷100 转换值);亲密度礼物 / 鱼丸礼物的此列为 NULL,避免污染统计总额 |
 | `color` | INTEGER | 1 红 / 2 蓝 / 3 绿 / 4 橙 / 5 紫 / 6 粉,钻粉/贵族彩弹专用,**不是高能弹幕** |
 | `done_at` | INTEGER | 高能"已响应"时间戳(ms);NULL = 未响应 |
 | `raw` | TEXT | 原始 KV body,排查协议变更时用 |
 
+**WS payload 额外字段**(不入 DB,只随实时推送给前端做亲密度/鱼丸特殊渲染):
+
+| 字段 | 含义 |
+|---|---|
+| `intimacy` | 单位亲密度;主 catalog 的 `growthInfo.intimacy` 优先,否则取 pandora 池的 `intimacy_per_unit` |
+| `price_yuwan` | 单位鱼丸价格(YUWAN 礼物专用);仅超大丸星/100鱼丸 |
+| `price_type` | "YUCHI" / "YUWAN" / null(未收录) |
+| `effective_yuchi` | 单位等效鱼翅 = `max(price_yuchi, intimacy/10)`;前端做颜色档与永久段判断 |
+
 **配置项**(关键词列表、阈值、通知开关)全部放 localStorage,不入 DB。
+
+**已知遗留**:历史 Tab(走 `/api/history` 从 DB 查)拿不到上述 4 个 ephemeral 字段,所以早期入库的乾坤袋礼物(抱元守一/千机伞 等)在历史 Tab 里只能看到名字+数量,看不到亲密度。需要时可加 `intimacy / price_type` 两列 + 一次 backfill。
 
 ---
 
@@ -166,6 +196,10 @@ header 实时显示:
   - 礼物 catalog `price_info.price` / `pc` / `comm_chatmsg.cprice` —— 鱼翅 × 100
   - `dfobc.price`(钻粉开通)—— RMB 分,÷10 才是鱼翅
   - 订阅 `odfpbc / rdfpbc` —— 没有 price 字段(赠送 / 活动型)
+- **catalog priceType**:实测只有 `YUCHI` / `YUWAN` 两种,**没有 INTIMACY**;亲密度走 `growthInfo.intimacy`。
+- **乾坤袋抽中礼物**(抱元守一/千机伞 等)**不在主 gift catalog 里**,需要从 `https://www.douyu.com/japi/interact/comm/pandora/config?rid={rid}` 抓"奖品池",pid → `value` (单位亲密度) 映射。dgb 帧的 **`from=2`** 是"乾坤袋抽中"的标记(普通购买为 `from=1`)。
+- **`from=2` + `gfid=0` + `pid` ≠ 0** = 乾坤袋抽出礼物的协议特征。
+- **订阅事件多 gid 重复广播**:`dfobc/odfpbc/...` 实测会在多个 gid 通道同时到达,collector 用 (type, uid) + 5s 窗口 LRU 去重,避免同人开钻粉入库两条。
 - **高能弹幕 = `comm_chatmsg`**,不是 `chatmsg + col≠0`(后者只是钻粉/贵族彩弹特权)。
 - **`comm_chatmsg.chatmsg@=` 是嵌套 KV**,二级用 `@A=` 替代 `@=`、`@S` 替代 `/`,需要 `parse_kv` 二次解。
 - **贵宾数**:`oni` 帧的 `vn` 字段(每 5 秒推一次),不是任何 betard 字段。
@@ -175,15 +209,9 @@ header 实时显示:
 
 ## 6. 已知 bug / 待办
 
-### 6.1 部分活动/任务礼物 + 乾坤袋开出礼物未显示(待诊断)
+### 6.1 历史 Tab 看不到亲密度礼物的价格信息
 
-**现象**:用户报告活动/任务礼物和乾坤袋开出的礼物没出现在礼物 Tab。
-
-**初步假设**:
-- 任务礼物 → `_DIAG_NOISE` 里的 `tsboxb` / `tsgs` 可能就是源头(之前判定它们是"观众间任务",但若含主播收入字段需要重新看)
-- 乾坤袋开出礼物 → 类似 pandora 的伪事件(cprice=0),可能被 `cprice<=0` 一刀切误杀;或是别的 type 写到 raw 里没识别
-
-**捕获方法**:用户下次注意到漏礼物时记下**时间 + 礼物名**,对照 `diag.log` 同时间窗的事件 + 把 `tsboxb`/`tsgs` 临时移出 NOISE 看真实 body 字段。
+DB schema 没有 `intimacy / price_type` 列,亲密度信息只在实时 WS payload 里。所以历史 Tab 的乾坤袋礼物只能看到名字+数量,看不到亲密度。**修复路径**:加两列 + backfill 一次。当前优先级低,新事件实时显示是核心场景。
 
 ### 6.2 贵族开通事件路径未实证
 
@@ -192,3 +220,7 @@ header 实时显示:
 ### 6.3 历史查询 limit 500(轻微)
 
 `db.py:Store.query` 硬性 cap 500,繁忙日子 backfill 和历史 Tab 都受限。当前未分页,遇到再处理。
+
+### 6.4 pandora catalog 启动时一次性拉
+
+斗鱼活动期间换乾坤袋皮肤(改 pid)需要重启服务才能生效。每次活动周期通常较长,当前可接受。如有需要可加定时刷新(比如每小时)。

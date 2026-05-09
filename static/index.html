@@ -2,200 +2,209 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<title>主播手记</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Hyacinth Sentry (风信子哨兵)</title>
 <style>
-  :root { color-scheme: light dark; }
-  * { box-sizing: border-box; }
-  body { font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; padding: 0; }
+  :root {
+    --primary: #818cf8; /* 风信子蓝 */
+    --primary-soft: rgba(129, 140, 248, 0.1);
+    --secondary: #a78bfa; /* 紫罗兰 */
+    --accent: #f472b6; /* 樱花粉 */
+    
+    /* 斗鱼阶梯色 */
+    --tier-0: #94a3b8; /* < 10: 淡色 */
+    --tier-1: #385fac; /* >= 10: 蓝色系 */
+    --tier-2: #d45954; /* >= 50: 红色系 */
+    --tier-3: #f9af1b; /* >= 300: 金色系 */
+    --tier-4: #4338ca; /* >= 1000: 深紫色 (高贵感) */
 
-  header {
-    padding: 8px 16px; background: #1f2937; color: #f9fafb;
-    display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+    --bg-page: #f8fafc;
+    --bg-card: #ffffff;
+    --text-main: #1e293b;
+    --text-dim: #64748b;
+    --border: #e2e8f0;
+    --radius: 12px;
+    --nav-h: 64px;
   }
-  header h1 { font-size: 16px; margin: 0; font-weight: 600; }
-  header .pill { padding: 2px 8px; border-radius: 4px; background: #374151; font-size: 12px; }
-  header .pill.ok { background: #059669; }
-  header .pill.bad { background: #dc2626; }
-  header .pill.live { background: #dc2626; }
-  header .pill.offline { background: #6b7280; }
-  header .pill.admin { background: #7c3aed; }
-  header .badge-flash {
-    width: 12px; height: 12px; border-radius: 50%; background: #f59e0b; opacity: 0;
-    transition: opacity .15s; margin-left: auto;
-  }
-  header .badge-flash.on { opacity: 1; box-shadow: 0 0 10px #f59e0b; }
 
-  nav.tabs {
-    display: flex; gap: 0; background: #f3f4f6; border-bottom: 1px solid #d1d5db;
-    padding: 0 8px; position: sticky; top: 0; z-index: 5;
-  }
   @media (prefers-color-scheme: dark) {
-    nav.tabs { background: #1f2937; border-bottom-color: #374151; }
+    :root {
+      --bg-page: #0f172a;
+      --bg-card: #1e293b;
+      --text-main: #f1f5f9;
+      --text-dim: #94a3b8;
+      --border: #334155;
+      --tier-0: #64748b;
+    }
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font: 16px/1.5 "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+    margin: 0; padding: 0;
+    background: var(--bg-page); color: var(--text-main);
+    overflow-x: hidden;
+  }
+
+  /* 顶部状态栏：解决移动端溢出 */
+  header {
+    padding: 10px 16px;
+    background: var(--bg-card); border-bottom: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 8px;
+    position: sticky; top: 0; z-index: 50;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  header .top-row { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+  header h1 { font-size: 16px; margin: 0; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 4px; }
+  header h1::before { content: "🪻"; font-size: 18px; }
+  
+  header .status-pills { display: flex; gap: 4px; flex-wrap: wrap; width: 100%; }
+  header .pill {
+    padding: 2px 8px; border-radius: 6px; background: var(--bg-page);
+    font-size: 11px; white-space: nowrap; color: var(--text-dim); font-weight: 600;
+    border: 1px solid var(--border);
+  }
+  header .pill.ok { border-color: #10b981; color: #10b981; }
+  header .pill.bad { border-color: #ef4444; color: #ef4444; }
+  header .pill.live { background: #ffe4e6; color: #e11d48; border-color: #fda4af; }
+  header .pill.admin { background: #f3e8ff; color: #7e22ce; border-color: #d8b4fe; }
+
+  header .badge-flash {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--accent); opacity: 0;
+    transition: opacity .2s;
+  }
+  header .badge-flash.on { opacity: 1; box-shadow: 0 0 8px var(--accent); animation: pulse 1s infinite; }
+  @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.3); } 100% { transform: scale(1); } }
+
+  /* 底部导航 */
+  nav.tabs {
+    height: var(--nav-h); background: var(--bg-card);
+    border-top: 1px solid var(--border);
+    position: fixed; bottom: 0; left: 0; right: 0;
+    display: flex; justify-content: space-around; align-items: center;
+    z-index: 100; padding-bottom: env(safe-area-inset-bottom);
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
   }
   nav.tabs a {
-    padding: 10px 16px; text-decoration: none; color: inherit; font-weight: 500;
-    border-bottom: 2px solid transparent;
+    flex: 1; height: 100%; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-decoration: none; color: var(--text-dim); font-size: 11px; font-weight: 600;
   }
-  nav.tabs a.active { border-bottom-color: #3b82f6; color: #3b82f6; }
-
-  main { padding: 12px; }
-  .view { display: none; }
+  nav.tabs a::before { font-size: 20px; margin-bottom: 2px; }
+  nav.tabs a[data-tab="gift"]::before { content: "🎁"; }
+  nav.tabs a[data-tab="high"]::before { content: "⚡"; }
+  nav.tabs a[data-tab="chat"]::before { content: "💬"; }
+  nav.tabs a[data-tab="history"]::before { content: "📅"; }
+  nav.tabs a.active { color: var(--primary); background: var(--primary-soft); }
+  
+  main {
+    padding: 12px 12px calc(var(--nav-h) + 20px + env(safe-area-inset-bottom));
+    max-width: 600px; margin: 0 auto;
+  }
+  .view { display: none; animation: fadeIn 0.2s ease; }
   .view.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
   .panel {
-    border: 1px solid #d1d5db; border-radius: 6px; padding: 10px;
-    background: #fff; margin-bottom: 12px;
+    background: var(--bg-card); border-radius: var(--radius);
+    padding: 12px; margin-bottom: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    border: 1px solid var(--border);
   }
-  @media (prefers-color-scheme: dark) {
-    .panel { background: #111827; border-color: #374151; color: #f3f4f6; }
-  }
-  .panel h2 {
-    font-size: 14px; margin: 0 0 8px; padding-bottom: 6px;
-    border-bottom: 1px solid #e5e7eb;
-    display: flex; justify-content: space-between; align-items: center; gap: 8px;
-  }
-  .panel h2 .hint { font-size: 12px; color: #6b7280; font-weight: normal; }
+  .panel h2 { font-size: 14px; margin: 0 0 10px; font-weight: 700; display: flex; justify-content: space-between; }
+  .panel h2 .hint { font-size: 11px; color: var(--text-dim); font-weight: normal; }
 
-  .filters { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; align-items: center; }
-  .filters input, .filters select, .filters button {
-    padding: 4px 8px; font: inherit; border: 1px solid #9ca3af; border-radius: 4px;
-    background: inherit; color: inherit;
-  }
-  .filters label { font-size: 13px; }
-
-  .feed { max-height: calc(100vh - 280px); overflow-y: auto; }
-  .feed.tall { max-height: calc(100vh - 220px); }
-
+  /* 列表项卡片 */
+  .feed { display: flex; flex-direction: column; gap: 8px; }
   .ev {
-    padding: 6px 8px; margin-bottom: 4px; border-radius: 4px;
-    border-left: 3px solid #9ca3af; background: rgba(156,163,175,.08);
+    padding: 10px 12px; border-radius: var(--radius);
+    background: var(--bg-card); border: 1px solid var(--border);
+    position: relative; transition: transform 0.1s;
   }
-  .ev.gift { border-left-color: #f59e0b; }
-  /* 永久置顶: ≥100 鱼翅 + 订阅, 视觉强调 */
-  .ev[data-perm="1"] { border-left-width: 4px; }
-  .ev.gift[data-perm="1"] { border-left-color: #dc2626; background: rgba(220,38,38,.10); }
-  .ev.gift[data-perm="1"] .price { color: #dc2626; }
-  .ev.superchat { border-left-color: #3b82f6; background: rgba(59,130,246,.10); }
-  /* admin 模式下高能卡片整卡可点 = 切换"已响应"状态 */
-  body.admin .ev.superchat { cursor: pointer; user-select: none; }
-  body.admin .ev.superchat:active { transform: scale(0.99); }
-  /* 已响应态：半透明 + 划线，不消失 (主播能回看自己刚标了什么) */
-  .ev.superchat[data-done="1"] {
-    opacity: 0.45;
-    border-left-color: #6b7280 !important;
-    background: rgba(107,114,128,.06) !important;
-  }
-  .ev.superchat[data-done="1"] .content,
-  .ev.superchat[data-done="1"] .nick { text-decoration: line-through; }
-  .ev.superchat[data-done="1"] .col-tag { background: #6b7280 !important; }
+  .ev .meta { font-size: 10px; color: var(--text-dim); margin-bottom: 4px; display: flex; gap: 8px; font-family: monospace; }
+  .ev .meta .id { opacity: 0.6; }
+  .ev .nick { font-weight: 700; }
+  .ev .body { font-size: 14px; line-height: 1.5; word-break: break-all; }
+  
+  /* 颜色阶梯：由 JS 根据金额注入 --tier 变量 */
+  .ev.gift, .ev.superchat { border-left: 4px solid var(--item-color, var(--tier-0)); }
+  .ev.gift[data-perm="1"] { box-shadow: 0 0 0 1px var(--item-color, var(--tier-0)) inset; }
+  .ev .price { color: var(--item-color, var(--tier-0)); font-weight: 800; }
+  .ev .price.intimacy { color: #d05a8c; }    /* 亲密度礼物 (乾坤袋抽中类): 粉红 */
+
+  /* 高能卡片状态 */
+  .ev.superchat[data-done="1"] { opacity: 0.5; filter: grayscale(0.6); }
+  .ev.superchat[data-done="1"] .body { text-decoration: line-through; }
   .ev.superchat[data-done="1"]::after {
-    content: "✓"; float: right; color: #10b981; font-weight: 700; margin-left: 6px;
+    content: "✓"; position: absolute; right: 10px; top: 10px; color: #10b981; font-weight: 900;
   }
-  .ev.subscription { border-left-color: #14b8a6; background: rgba(20,184,166,.12); }
-  .ev.superchat[data-col="1"] { border-left-color: #ef4444; background: rgba(239,68,68,.10); }
-  .ev.superchat[data-col="2"] { border-left-color: #3b82f6; background: rgba(59,130,246,.10); }
-  .ev.superchat[data-col="3"] { border-left-color: #10b981; background: rgba(16,185,129,.10); }
-  .ev.superchat[data-col="4"] { border-left-color: #f97316; background: rgba(249,115,22,.10); }
-  .ev.superchat[data-col="5"] { border-left-color: #a855f7; background: rgba(168,85,247,.10); }
-  .ev.superchat[data-col="6"] { border-left-color: #ec4899; background: rgba(236,72,153,.10); }
-  .ev .col-tag {
-    display: inline-block; padding: 0 4px; border-radius: 3px;
-    font-size: 11px; color: #fff; margin-right: 4px;
-  }
-  .ev .meta { font-size: 12px; color: #6b7280; }
-  .ev .nick { font-weight: 600; }
-  .ev .body { margin-top: 2px; }
-  .ev .price { color: #f59e0b; font-weight: 600; }
-  .ev .content { color: #1d4ed8; }
 
-  /* 弹幕紧凑布局：高频率刷新下小卡片 reflow 更轻 */
-  .ev.chat { padding: 2px 8px; margin-bottom: 2px; background: transparent; border-left-color: #6b7280; }
-  .ev.chat .meta { display: none; }
-  .ev.chat[data-col="1"] { color: #ef4444; }
-  .ev.chat[data-col="2"] { color: #3b82f6; }
-  .ev.chat[data-col="3"] { color: #10b981; }
-  .ev.chat[data-col="4"] { color: #f97316; }
-  .ev.chat[data-col="5"] { color: #a855f7; }
-  .ev.chat[data-col="6"] { color: #ec4899; }
-  /* 关键词命中：飘红强调，独立条目 hold 30s */
-  .ev.chat[data-pin="1"] {
-    border-left-color: #dc2626; border-left-width: 4px;
-    background: rgba(220,38,38,.10); padding: 4px 8px; margin-bottom: 4px;
-  }
-  .ev.chat[data-pin="1"] .nick { color: #dc2626; }
-  /* dedup 计数徽标 */
+  .ev.subscription { border-left: 4px solid #10b981; }
+
+  /* 弹幕卡片 */
+  .ev.chat { padding: 4px 12px; border-left: 2px solid var(--border); }
+  .ev.chat[data-pin="1"] { border-left: 4px solid var(--accent); background: rgba(244, 114, 182, 0.05); }
   .ev.chat .dup {
-    display: inline-block; margin-left: 6px; padding: 0 5px;
-    border-radius: 8px; background: #f59e0b; color: #fff;
-    font-size: 11px; font-weight: 600;
+    padding: 0 6px; border-radius: 10px; background: var(--primary); color: #fff;
+    font-size: 10px; margin-left: 4px; font-weight: 800;
   }
-  /* pinned 段与 dedup 段之间细虚线分隔 */
-  .ev.chat.first-dedup { border-top: 1px dashed #d1d5db; padding-top: 6px; margin-top: 4px; }
 
-  /* 弹幕 Tab 上下分栏 70/30 */
-  .chat-split { display: flex; flex-direction: column; gap: 8px; height: calc(100vh - 180px); }
-  .chat-upper { flex: 7; min-height: 0; display: flex; flex-direction: column; margin: 0; }
-  .chat-lower { flex: 3; min-height: 0; display: flex; flex-direction: column; margin: 0; }
-  .chat-upper .feed, .chat-lower .feed { flex: 1; min-height: 0; max-height: none; }
+  /* 弹幕配置面板样式修复 */
+  #chatConfig .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  #chatConfig .filters input { flex: 1; min-width: 150px; }
+  #chatConfig .filters button { white-space: nowrap; }
 
-  /* 热梗下栏卡片 */
-  .hot-item {
-    padding: 6px 10px; margin-bottom: 4px; border-radius: 4px;
-    background: rgba(245,158,11,.12); border-left: 3px solid #f59e0b;
-    display: flex; gap: 8px; align-items: baseline;
+  @media (min-width: 768px) {
+    header { flex-direction: row; height: 64px; }
+    header .status-pills { width: auto; flex: 1; justify-content: flex-end; }
+    nav.tabs {
+      position: static; height: 48px; border-top: none; border-bottom: 1px solid var(--border);
+      box-shadow: none; padding: 0 20px;
+    }
+    nav.tabs a { flex: none; width: 100px; }
+    main { padding: 20px; max-width: 800px; }
   }
-  .hot-item .hot-count { font-weight: 700; color: #dc2626; font-size: 16px; min-width: 36px; }
-  .hot-item .hot-key { color: #b45309; font-weight: 600; }
-  .hot-item .hot-bg { color: #6b7280; font-size: 12px; margin-left: auto; max-width: 60%; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-  /* 关键词配置面板 */
-  .pin-kw-list { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; min-height: 24px; }
-  .pin-kw-tag {
-    padding: 2px 6px; border-radius: 4px; background: rgba(59,130,246,.18);
-    display: inline-flex; gap: 4px; font-size: 12px; align-items: center;
-  }
-  .pin-kw-tag .x { cursor: pointer; color: #6b7280; user-select: none; }
-  .pin-kw-tag .x:hover { color: #dc2626; }
-  .pin-kw-empty { color: #9ca3af; font-size: 12px; }
-
-  /* 永久段和瞬时段之间的细分隔线 — 视觉提示，不阻断阅读 */
-  .ev.first-transient { border-top: 1px dashed #d1d5db; padding-top: 10px; margin-top: 6px; }
 
   .admin-only { display: none !important; }
-  body.admin .admin-only { display: initial !important; }
-  body.admin .admin-only.flex { display: flex !important; }
-
-  .empty { color: #9ca3af; padding: 20px; text-align: center; font-style: italic; }
+  body.admin .admin-only { display: block !important; }
+  .empty { padding: 40px; text-align: center; color: var(--text-dim); }
+  
+  input, select, button {
+    border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px;
+    font-size: 14px; background: var(--bg-card); color: var(--text-main);
+    outline: none;
+  }
+  button { background: var(--primary); color: white; border: none; font-weight: 700; cursor: pointer; }
+  button:active { transform: scale(0.95); opacity: 0.9; }
+  .pin-kw-tag {
+    background: var(--primary-soft); color: var(--primary); padding: 4px 10px;
+    border-radius: 100px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 4px;
+  }
 </style>
 </head>
 <body>
 <header>
-  <h1>主播手记</h1>
-  <div class="pill" id="room">房间 -</div>
-  <div class="pill" id="status">未连接</div>
-  <div class="pill offline" id="liveStatus" style="display:none">未开播</div>
-  <div class="pill" id="vipCount" style="display:none">贵宾 -</div>
-  <div class="pill" id="stats" style="display:none">-</div>
-  <div class="pill admin" id="adminPill" style="display:none">主播</div>
-  <div class="badge-flash" id="badgeFlash" title="新礼物提醒"></div>
+  <div class="top-row">
+    <h1>Hyacinth Sentry</h1>
+    <div class="badge-flash" id="badgeFlash"></div>
+  </div>
+  <div class="status-pills">
+    <div class="pill" id="room">房间 -</div>
+    <div class="pill" id="status">连接中...</div>
+    <div class="pill offline" id="liveStatus" style="display:none">未开播</div>
+    <div class="pill" id="vipCount" style="display:none">- 贵宾</div>
+    <div class="pill" id="stats" style="display:none">-</div>
+    <div class="pill admin" id="adminPill" style="display:none">主播</div>
+  </div>
 </header>
-<nav class="tabs">
-  <a data-tab="gift" href="#/">礼物</a>
-  <a data-tab="high" href="#/high">高能</a>
-  <a data-tab="chat" href="#/chat">弹幕</a>
-  <a data-tab="history" href="#/history">历史</a>
-</nav>
+
 <main>
   <!-- 礼物 -->
   <div class="view" id="view-gift">
     <div class="panel">
-      <h2>
-        <span>礼物 <span class="hint" id="giftHint"></span></span>
-        <span class="hint" id="giftCount"></span>
-      </h2>
+      <h2>礼物 <span class="hint" id="giftCount"></span></h2>
       <div class="filters">
-        <label>阈值（鱼翅）<input type="number" id="giftThreshold" value="6" min="0" step="0.1" style="width:70px"></label>
-        <span class="hint" style="font-size:12px;color:#6b7280">低于阈值不显示；≥100 永久置顶；&lt;100 保留 30 分钟</span>
+        <label style="font-size:12px">阈值 <input type="number" id="giftThreshold" value="6" style="width:50px; padding:2px 4px"></label>
       </div>
       <div class="feed" id="giftFeed"></div>
     </div>
@@ -204,66 +213,82 @@
   <!-- 高能 -->
   <div class="view" id="view-high">
     <div class="panel">
-      <h2>
-        <span>高能弹幕 <span class="hint" id="highHint">时间倒序 · 主播点卡片切换已响应</span></span>
-        <span class="hint" id="highCount"></span>
-      </h2>
-      <div class="feed tall" id="highFeed"></div>
+      <h2>高能弹幕 <span class="hint" id="highCount"></span></h2>
+      <div class="feed" id="highFeed"></div>
     </div>
   </div>
 
   <!-- 弹幕 -->
   <div class="view" id="view-chat">
-    <div class="panel admin-only" id="chatConfig" style="margin-bottom:8px">
-      <h2>关键词置顶 <span class="hint">命中后单独高亮 30 秒，不被去重合并</span></h2>
+    <div class="panel admin-only" id="chatConfig">
+      <h2>关键词置顶</h2>
       <div class="filters">
-        <input id="newPinKw" placeholder="例: 主播昵称、口头禅" size="20">
+        <input id="newPinKw" placeholder="输入关键词...">
         <button id="addPinKw">添加</button>
-        <label><input type="checkbox" id="chatPause"> 暂停接收</label>
-        <button id="chatClear">清空</button>
       </div>
-      <div class="pin-kw-list" id="pinKwList"></div>
+      <div class="pin-kw-list" id="pinKwList" style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap"></div>
+      <div style="margin-top:12px; display:flex; gap:10px; align-items:center">
+        <label style="font-size:12px"><input type="checkbox" id="chatPause"> 暂停</label>
+        <button id="chatClear" style="background:var(--border);color:var(--text-dim);font-size:12px;padding:2px 8px;border-radius:4px">清空</button>
+      </div>
     </div>
-    <div class="chat-split">
-      <div class="panel chat-upper">
-        <h2>实时弹幕 <span class="hint" id="chatTopHint">命中关键词置顶 30s · 普通按内容去重 +N · 1 分钟自动消失</span></h2>
-        <div class="feed" id="chatStream"></div>
-      </div>
-      <div class="panel chat-lower">
-        <h2>热梗 <span class="hint">斗鱼聚合: N 人在说</span></h2>
-        <div class="feed" id="hotStream"></div>
-      </div>
+    <div class="panel">
+      <h2>实时弹幕 <span class="hint">按内容去重 · 1分钟自动消失</span></h2>
+      <div class="feed" id="chatStream"></div>
+    </div>
+    <div class="panel">
+      <h2>全站热梗</h2>
+      <div class="feed" id="hotStream"></div>
     </div>
   </div>
 
   <!-- 历史 -->
   <div class="view" id="view-history">
     <div class="panel">
-      <h2>历史 <span class="hint">按日期，凌晨 4 点切分</span></h2>
+      <h2>历史查询</h2>
       <div class="filters">
-        <label>日期 <input type="date" id="histDate"></label>
+        <input type="date" id="histDate" style="flex:1">
         <select id="histKind">
-          <option value="">全部（高能 + 礼物 + 订阅）</option>
-          <option value="superchat">仅高能</option>
-          <option value="gift">仅礼物</option>
-          <option value="subscription">仅订阅</option>
+          <option value="">全部</option>
+          <option value="superchat">高能</option>
+          <option value="gift">礼物</option>
         </select>
         <button id="histLoad">查询</button>
-        <button id="histExport" class="admin-only">导出 CSV</button>
       </div>
-      <div class="hint" id="histSummary" style="margin-bottom:8px">尚未查询</div>
-      <div class="feed tall" id="histFeed"></div>
+      <div class="filters admin-only">
+        <button id="histExport" style="width:100%; background:var(--secondary)">导出当日 CSV</button>
+      </div>
+      <div class="hint" id="histSummary" style="margin:8px 0; text-align:center"></div>
+      <div class="feed" id="histFeed"></div>
     </div>
   </div>
 </main>
+
+<nav class="tabs">
+  <a data-tab="gift" href="#/">礼物</a>
+  <a data-tab="high" href="#/high">高能</a>
+  <a data-tab="chat" href="#/chat">弹幕</a>
+  <a data-tab="history" href="#/history">历史</a>
+</nav>
+
 <script>
 // ----------- helpers -----------
 const $ = id => document.getElementById(id);
 const fmtTs = ms => {
   const d = new Date(ms); const p = n => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 };
 const escHtml = s => (s ?? "").replace(/[<>&]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
+const vibrate = ms => { if (navigator.vibrate) navigator.vibrate(ms); };
+
+// 根据鱼翅金额返回阶梯颜色变量
+function getTierColor(yuchi) {
+  if (yuchi >= 1000) return "var(--tier-4)";
+  if (yuchi >= 300) return "var(--tier-3)";
+  if (yuchi >= 50) return "var(--tier-2)";
+  if (yuchi >= 10) return "var(--tier-1)";
+  return "var(--tier-0)";
+}
 
 const PIN_TTL_MS = 30 * 60 * 1000;
 const PIN_PERMANENT = 100;
@@ -278,6 +303,7 @@ if (KEY_PARAM) {
 const ADMIN_KEY = localStorage.getItem("admin_key") || "";
 let adminEnabled = false;
 let isAdmin = false;
+
 async function checkAdmin() {
   try {
     const headers = ADMIN_KEY ? {"x-admin-key": ADMIN_KEY} : {};
@@ -285,7 +311,6 @@ async function checkAdmin() {
     adminEnabled = !!r.admin_enabled;
     isAdmin = !!r.is_admin;
     document.body.classList.toggle("admin", isAdmin);
-    // "主播" pill 仅在多人模式且本机是主播时才有意义
     if (adminEnabled && isAdmin) $("adminPill").style.display = "";
   } catch {}
 }
@@ -300,29 +325,42 @@ const PREF = {
 function renderEvent(e) {
   const div = document.createElement("div");
   div.className = "ev " + e.kind;
-  if (e.color) div.dataset.col = String(e.color);
   if (e.id != null) div.dataset.id = String(e.id);
   if (e.kind === "superchat" && e.done_at) div.dataset.done = "1";
-  const meta = `<div class="meta">${fmtTs(e.ts)}${e.id ? " · #" + e.id : ""}</div>`;
+
+  const cnt = e.count || 1;
+  const yuchi = e.price_yuchi != null ? (e.price_yuchi * cnt) : null;
+  // 阶梯色用等效鱼翅 (含亲密度折算),让"超大丸星"这类大亲密度礼物也享有金色高亮
+  const tierValue = e.effective_yuchi != null ? e.effective_yuchi * cnt : yuchi;
+  if (tierValue != null && tierValue > 0) div.style.setProperty("--item-color", getTierColor(tierValue));
+
+  const timeStr = fmtTs(e.ts);
+  const meta = `<div class="meta"><span class="time">${timeStr}</span>${e.id ? `<span class="id">#${e.id}</span>` : ""}</div>`;
+
   let body;
   if (e.kind === "gift") {
+    // 有鱼翅按鱼翅 (真实价格), 否则按亲密度 (乾坤袋抽中礼物 + 超大丸星)
+    // 颜色统一走 effective_yuchi (= max(yuchi, intimacy/10)), 已在上面 tierValue 算好
     let priceTag = "";
-    if (e.price_yuchi != null) {
-      const total = e.price_yuchi * (e.count || 1);
-      const shown = total >= 10 ? Math.round(total) : Number(total.toFixed(2));
+    if (yuchi != null && yuchi > 0) {
+      const shown = yuchi >= 10 ? Math.round(yuchi) : Number(yuchi.toFixed(2));
       priceTag = ` <span class="price">${shown} 鱼翅</span>`;
+    } else {
+      const totalInt = (e.intimacy || 0) * cnt;
+      if (totalInt > 0) {
+        priceTag = ` <span class="price intimacy">${totalInt} 亲密度</span>`;
+      }
     }
-    body = `<div class="body"><span class="nick">${escHtml(e.nickname) || "?"}</span> 送出 <b>${escHtml(e.gift_name) || ("礼物#" + e.gift_id)}</b> ×${e.count || 1}${priceTag}</div>`;
+    body = `<div class="body"><span class="nick">${escHtml(e.nickname) || "?"}</span> 送 <b>${escHtml(e.gift_name)}</b> ×${cnt}${priceTag}</div>`;
   } else if (e.kind === "superchat") {
     let priceTag = "";
     if (e.price_yuchi != null) {
-      const shown = e.price_yuchi >= 10 ? Math.round(e.price_yuchi) : Number(e.price_yuchi.toFixed(2));
+      const shown = yuchi >= 10 ? Math.round(yuchi) : Number(yuchi.toFixed(2));
       priceTag = ` <span class="price">${shown} 鱼翅</span>`;
     }
-    const sub = e.gift_name && e.gift_name !== "高能弹幕" ? ` (${escHtml(e.gift_name)})` : "";
-    body = `<div class="body"><span class="col-tag" style="background:#3b82f6">高能${sub}</span><span class="nick">${escHtml(e.nickname) || "?"}</span>${priceTag}: <span class="content">${escHtml(e.content)}</span></div>`;
+    body = `<div class="body"><span class="nick">${escHtml(e.nickname) || "?"}</span>${priceTag}: <span class="content">${escHtml(e.content)}</span></div>`;
   } else if (e.kind === "subscription") {
-    body = `<div class="body"><span class="col-tag" style="background:#14b8a6">订阅</span><span class="nick">${escHtml(e.nickname) || "?"}</span> <b>${escHtml(e.gift_name)}</b></div>`;
+    body = `<div class="body"><span class="nick">${escHtml(e.nickname) || "?"}</span> <b>${escHtml(e.gift_name)}</b></div>`;
   } else {
     body = `<div class="body"><span class="nick">${escHtml(e.nickname) || "?"}</span>: ${escHtml(e.content)}</div>`;
   }
@@ -336,33 +374,25 @@ function applyTab() {
   const tab = HASH_TO_TAB[location.hash.slice(1) || "/"] || "gift";
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + tab));
   document.querySelectorAll("nav.tabs a").forEach(a => a.classList.toggle("active", a.dataset.tab === tab));
+  window.scrollTo(0, 0);
 }
 window.addEventListener("hashchange", applyTab);
 
-// ----------- 礼物 Tab —— 单 feed 双段管理 -----------
-// DOM 顺序：[permanent 段，按 ts 倒序] [transient 段，按 ts 倒序]
-// permanent: ≥100 鱼翅 + 订阅 (永久)
-// transient: 阈值 ≤ price < 100 (30 分钟 TTL)
-// 阈值过滤掉低于阈值的礼物（不进 feed）
+// ----------- 礼物 Tab -----------
 const giftFeed = $("giftFeed");
 
-function refreshGiftHint() {
-  $("giftHint").textContent = `时间倒序 · 阈值 ${PREF.gift_threshold} 鱼翅 · ≥${PIN_PERMANENT} 永久`;
-}
 function refreshGiftCount() {
   const total = giftFeed.querySelectorAll(".ev").length;
   const perm = giftFeed.querySelectorAll('.ev[data-perm="1"]').length;
-  $("giftCount").textContent = total ? `${total} 条（${perm} 永久）` : "";
-  // 维护 first-transient class
-  giftFeed.querySelectorAll(".ev.first-transient").forEach(el => el.classList.remove("first-transient"));
-  const firstTrans = giftFeed.querySelector('.ev[data-perm="0"]');
-  if (firstTrans && perm > 0) firstTrans.classList.add("first-transient");
+  $("giftCount").textContent = total ? `${total} (${perm} 永久)` : "";
 }
 
 function classifyGift(e) {
-  // 返回 {include: bool, permanent: bool, total: number}
   if (e.kind === "subscription") return { include: true, permanent: true, total: null };
-  const total = (e.price_yuchi || 0) * (e.count || 1);
+  // 等效鱼翅 = max(price_yuchi, intimacy/10);后端 collector 已经算好了 effective_yuchi。
+  // 历史 API 不带此字段,fallback 到 price_yuchi (亲密度礼物在历史 Tab 里就只按真鱼翅看)。
+  const unit = e.effective_yuchi != null ? e.effective_yuchi : (e.price_yuchi || 0);
+  const total = unit * (e.count || 1);
   if (total < PREF.gift_threshold) return { include: false, permanent: false, total };
   return { include: true, permanent: total >= PIN_PERMANENT, total };
 }
@@ -375,15 +405,13 @@ function insertIntoGiftFeed(e, opts = {}) {
   el.dataset.ts = String(e.ts);
   el.dataset.total = c.total != null ? String(c.total) : "";
   if (c.permanent) {
-    // 永久段：永远 prepend（最新永久在最前；transient 自然下移）
     giftFeed.prepend(el);
+    if (!opts.backfill) vibrate([100, 50, 100]);
   } else {
-    // 瞬时段：插入到第一个 transient 节点之前；若没有 transient，则 append
     const firstTrans = giftFeed.querySelector('.ev[data-perm="0"]');
     if (firstTrans) firstTrans.parentNode.insertBefore(el, firstTrans);
     else giftFeed.appendChild(el);
   }
-  // 全段总条数上限（避免内存膨胀）：仅截 transient 段
   const transAll = giftFeed.querySelectorAll('.ev[data-perm="0"]');
   if (transAll.length > STREAM_MAX) {
     for (let i = STREAM_MAX; i < transAll.length; i++) transAll[i].remove();
@@ -402,23 +430,18 @@ function ttlSweep() {
 }
 setInterval(ttlSweep, 60 * 1000);
 
-// 阈值变更：移除已显示但低于新阈值的 transient 节点（永久段不受影响）
 function onThresholdChange() {
   giftFeed.querySelectorAll('.ev[data-perm="0"]').forEach(el => {
     const total = parseFloat(el.dataset.total || "0");
     if (total < PREF.gift_threshold) el.remove();
   });
-  refreshGiftHint();
   refreshGiftCount();
 }
 
 function flashBadge() {
   const b = $("badgeFlash");
-  let t = 0;
-  for (let i = 0; i < 3; i++) {
-    setTimeout(() => b.classList.add("on"), t); t += 500;
-    setTimeout(() => b.classList.remove("on"), t); t += 500;
-  }
+  b.classList.add("on");
+  setTimeout(() => b.classList.remove("on"), 3000);
 }
 
 // ----------- 高能 Tab -----------
@@ -427,48 +450,37 @@ function appendHigh(e) {
   highStream.prepend(renderEvent(e));
   while (highStream.childElementCount > STREAM_MAX) highStream.lastChild.remove();
   refreshHighCount();
+  vibrate(50);
 }
 function refreshHighCount() {
   const total = highStream.querySelectorAll('.ev.superchat').length;
   const pending = highStream.querySelectorAll('.ev.superchat:not([data-done="1"])').length;
-  $("highCount").textContent = total ? `未响应 ${pending} / 共 ${total}` : "";
+  $("highCount").textContent = total ? `未响应 ${pending}/${total}` : "";
 }
-// admin 点击高能卡片 = 切换已响应（乐观更新；服务端会 broadcast done_changed）
 highStream.addEventListener("click", async ev => {
   if (!isAdmin) return;
   const card = ev.target.closest('.ev.superchat');
   if (!card) return;
+  vibrate(30);
   const id = card.dataset.id;
-  if (!id) return;
-  // 乐观更新
   const wasDone = card.dataset.done === "1";
   if (wasDone) delete card.dataset.done; else card.dataset.done = "1";
   refreshHighCount();
   try {
     const headers = ADMIN_KEY ? {"x-admin-key": ADMIN_KEY} : {};
     const r = await fetch(`/api/event/${id}/done`, { method: "POST", headers });
-    if (!r.ok) throw new Error("HTTP " + r.status);
-  } catch (err) {
-    // 回滚
+    if (!r.ok) throw new Error();
+  } catch {
     if (wasDone) card.dataset.done = "1"; else delete card.dataset.done;
     refreshHighCount();
-    console.error("toggle done failed:", err);
   }
 });
 
-// ----------- 弹幕 Tab —— 实时去重 +N 显示 + 关键词置顶 + 热梗下栏 -----------
-// 没有长度过滤、没有停用词。核心是去重 +N + 1min 滑窗 expire。
+// ----------- 弹幕 Tab -----------
 const chatStream = $("chatStream");
 const hotStream = $("hotStream");
-
-const DEDUP_WINDOW_MS = 60 * 1000;      // 普通弹幕 1 分钟没复读则消失
-const PIN_HOLD_MS = 30 * 1000;          // 关键词命中条 hold 30 秒
-const HOT_TTL_MS = 60 * 1000;           // 热梗节点 1 分钟没刷新就移除
-const DEDUP_MAX = 200;                  // dedup 段节点数上限
-const HOT_MAX = 30;
-
-const dedupChat = new Map();   // norm_key → { el, ts (last seen), count }
-const hotItems = new Map();    // hot phrase → { el, ts }
+const dedupChat = new Map();
+const hotItems = new Map();
 
 let chatPinKeywords = [];
 try { chatPinKeywords = JSON.parse(localStorage.getItem("prefs.chat_pin_keywords") || "[]"); }
@@ -478,332 +490,175 @@ function savePinKws() { localStorage.setItem("prefs.chat_pin_keywords", JSON.str
 
 function renderPinKwList() {
   const list = $("pinKwList");
-  list.innerHTML = "";
-  if (!chatPinKeywords.length) {
-    list.innerHTML = '<span class="pin-kw-empty">未设置关键词，命中机制不生效</span>';
-    return;
-  }
+  list.innerHTML = chatPinKeywords.length ? "" : '<span style="font-size:12px;color:var(--text-dim)">未设置关键词</span>';
   chatPinKeywords.forEach((kw, idx) => {
     const tag = document.createElement("span");
     tag.className = "pin-kw-tag";
-    tag.innerHTML = `${escHtml(kw)} <span class="x" data-idx="${idx}">×</span>`;
+    tag.innerHTML = `${escHtml(kw)} <span class="x" data-idx="${idx}" style="cursor:pointer;opacity:0.5;margin-left:4px">×</span>`;
     list.appendChild(tag);
   });
 }
 
 function normalizeChatText(s) {
-  if (!s) return "";
-  return s.toLowerCase()
-    .replace(/\s+/g, "")
-    .replace(/[、。，！？!?,.~～·…\-—]/g, "")
-    .replace(/\+\d+$/, "");
+  return (s || "").toLowerCase().replace(/\s+/g, "").replace(/[、。，！？!?,.~～·…\-—]/g, "").replace(/\+\d+$/, "");
 }
 
 function buildChatNode(e, opts) {
   const div = document.createElement("div");
   div.className = "ev chat";
-  if (e.color) div.dataset.col = String(e.color);
   div.dataset.pin = opts.pinned ? "1" : "0";
   div.dataset.ts = String(Date.now());
   if (opts.dedupKey) div.dataset.key = opts.dedupKey;
-  const nick = escHtml(e.nickname || "?");
-  const txt = escHtml(e.content || "");
-  let body = `<span class="nick">${nick}</span>: <span class="content">${txt}</span>`;
-  if (opts.count > 1) body += ` <span class="dup">+${opts.count}</span>`;
+  let body = `<span class="nick">${escHtml(e.nickname || "?")}</span>: ${escHtml(e.content || "")}`;
+  if (opts.count > 1) body += ` <span class="dup">${opts.count}</span>`;
   div.innerHTML = body;
   return div;
 }
 
-function refreshChatDivider() {
-  chatStream.querySelectorAll(".ev.chat.first-dedup").forEach(el => el.classList.remove("first-dedup"));
-  if (chatStream.querySelector('.ev.chat[data-pin="1"]')) {
-    const firstDedup = chatStream.querySelector('.ev.chat[data-pin="0"]');
-    if (firstDedup) firstDedup.classList.add("first-dedup");
-  }
-}
-
 function pushChat(e) {
-  const txt = (e.content || "").trim();
-  if (!txt) return;
   if ($("chatPause").checked) return;
-  // 关键词命中：单独占位，不参与去重，hold 30s
-  if (chatPinKeywords.length && chatPinKeywords.some(kw => kw && txt.includes(kw))) {
+  const txt = (e.content || "").trim();
+  if (chatPinKeywords.some(kw => kw && txt.includes(kw))) {
     const node = buildChatNode(e, { pinned: true, count: 1 });
     chatStream.insertBefore(node, chatStream.firstChild);
-    setTimeout(() => { node.remove(); refreshChatDivider(); }, PIN_HOLD_MS);
-    refreshChatDivider();
+    setTimeout(() => { node.remove(); }, 30000);
+    vibrate([50, 50, 50]);
     return;
   }
-  // 去重路径
   const key = normalizeChatText(txt);
-  if (!key) return;
   const existing = dedupChat.get(key);
   if (existing) {
-    existing.count++;
-    existing.ts = Date.now();
-    existing.el.dataset.ts = String(existing.ts);
+    existing.count++; existing.ts = Date.now();
     let dup = existing.el.querySelector(".dup");
     if (!dup) {
-      dup = document.createElement("span");
-      dup.className = "dup";
-      existing.el.appendChild(document.createTextNode(" "));
+      dup = document.createElement("span"); dup.className = "dup";
       existing.el.appendChild(dup);
     }
-    dup.textContent = `+${existing.count}`;
-    // 提到 dedup 段顶部（pinned 段下方）
-    const firstDedup = chatStream.querySelector('.ev.chat[data-pin="0"]');
-    if (firstDedup && firstDedup !== existing.el) {
-      chatStream.insertBefore(existing.el, firstDedup);
-    }
+    dup.textContent = existing.count;
+    chatStream.insertBefore(existing.el, chatStream.firstChild);
     return;
   }
   const node = buildChatNode(e, { pinned: false, count: 1, dedupKey: key });
-  const firstDedup = chatStream.querySelector('.ev.chat[data-pin="0"]');
-  if (firstDedup) chatStream.insertBefore(node, firstDedup);
-  else chatStream.appendChild(node);
+  chatStream.insertBefore(node, chatStream.firstChild);
   dedupChat.set(key, { el: node, ts: Date.now(), count: 1 });
-  // dedup 段截断
   const dedupNodes = chatStream.querySelectorAll('.ev.chat[data-pin="0"]');
   if (dedupNodes.length > DEDUP_MAX) {
-    for (let i = DEDUP_MAX; i < dedupNodes.length; i++) {
-      const oldKey = dedupNodes[i].dataset.key;
-      if (oldKey) dedupChat.delete(oldKey);
-      dedupNodes[i].remove();
-    }
+    const last = dedupNodes[dedupNodes.length-1];
+    dedupChat.delete(last.dataset.key); last.remove();
   }
-  refreshChatDivider();
 }
 
-function dedupSweep() {
-  const cutoff = Date.now() - DEDUP_WINDOW_MS;
-  for (const [k, v] of dedupChat) {
-    if (v.ts < cutoff) {
-      v.el.remove();
-      dedupChat.delete(k);
-    }
-  }
-  refreshChatDivider();
-}
-setInterval(dedupSweep, 10 * 1000);
-
-// 热梗下栏
 function pushHotBarrage(e) {
-  const key = e.gift_name || "";
-  const total = e.count || 0;
-  const bg = e.content || "";
-  if (!key) return;
+  const key = e.gift_name; if (!key) return;
   const existing = hotItems.get(key);
   if (existing) {
     existing.ts = Date.now();
-    existing.el.querySelector(".hot-count").textContent = total;
-    existing.el.querySelector(".hot-bg").textContent = bg;
+    existing.el.querySelector(".hot-count").textContent = e.count;
     hotStream.insertBefore(existing.el, hotStream.firstChild);
     return;
   }
   const div = document.createElement("div");
   div.className = "hot-item";
-  div.innerHTML = `<span class="hot-count">${total}</span>人在说 <b class="hot-key">${escHtml(key)}</b><span class="hot-bg">${escHtml(bg)}</span>`;
+  div.innerHTML = `<span class="hot-count">${e.count}</span><span class="hot-key">${escHtml(key)}</span>`;
   hotItems.set(key, { el: div, ts: Date.now() });
   hotStream.insertBefore(div, hotStream.firstChild);
-  while (hotStream.childElementCount > HOT_MAX) {
-    const last = hotStream.lastChild;
-    for (const [k, v] of hotItems) { if (v.el === last) { hotItems.delete(k); break; } }
-    last.remove();
-  }
 }
-function hotSweep() {
-  const cutoff = Date.now() - HOT_TTL_MS;
-  for (const [k, v] of hotItems) {
-    if (v.ts < cutoff) { v.el.remove(); hotItems.delete(k); }
-  }
-}
-setInterval(hotSweep, 15 * 1000);
 
-// 关键词管理 UI
 $("addPinKw").onclick = () => {
   const v = $("newPinKw").value.trim();
-  if (!v || chatPinKeywords.includes(v)) { $("newPinKw").value = ""; return; }
-  chatPinKeywords.push(v);
-  savePinKws();
-  renderPinKwList();
-  $("newPinKw").value = "";
+  if (!v || chatPinKeywords.includes(v)) return;
+  chatPinKeywords.push(v); savePinKws(); renderPinKwList(); $("newPinKw").value = "";
 };
-$("newPinKw").addEventListener("keydown", ev => {
-  if (ev.key === "Enter") $("addPinKw").click();
-});
-$("pinKwList").addEventListener("click", ev => {
+$("pinKwList").onclick = ev => {
   if (ev.target.classList.contains("x")) {
-    const idx = Number(ev.target.dataset.idx);
-    chatPinKeywords.splice(idx, 1);
-    savePinKws();
-    renderPinKwList();
+    chatPinKeywords.splice(Number(ev.target.dataset.idx), 1);
+    savePinKws(); renderPinKwList();
   }
-});
+};
 renderPinKwList();
 $("chatClear").onclick = () => {
-  chatStream.innerHTML = "";
-  hotStream.innerHTML = "";
-  dedupChat.clear();
-  hotItems.clear();
+  chatStream.innerHTML = ""; hotStream.innerHTML = ""; dedupChat.clear(); hotItems.clear();
 };
 
-// ----------- room info -----------
-function updateRoomInfo(e) {
-  // show_status: 1=直播中, 2=未开播, 其他=未知
-  if (e.show_status != null) {
-    const ls = $("liveStatus");
-    if (e.show_status === 1) {
-      ls.textContent = "直播中"; ls.className = "pill live";
-    } else if (e.show_status === 2) {
-      ls.textContent = "未开播"; ls.className = "pill offline";
-    } else {
-      ls.textContent = "状态 " + e.show_status; ls.className = "pill";
-    }
-    ls.style.display = "";
-  }
-}
-function updateVipCount(e) {
-  if (e.vip_count == null) return;
-  $("vipCount").textContent = "贵宾 " + e.vip_count.toLocaleString();
-  $("vipCount").style.display = "";
-}
-
 // ----------- websocket -----------
-let ws = null;
 function connect() {
   const proto = location.protocol === "https:" ? "wss" : "ws";
-  ws = new WebSocket(`${proto}://${location.host}/ws/live`);
-  ws.onopen = () => { $("status").textContent = "已连接"; $("status").className = "pill ok"; };
+  const ws = new WebSocket(`${proto}://${location.host}/ws/live`);
+  ws.onopen = () => { $("status").textContent = "在线"; $("status").className = "pill ok"; };
   ws.onclose = () => {
-    $("status").textContent = "已断开,3 秒后重连";
-    $("status").className = "pill bad";
+    $("status").textContent = "离线,重连中"; $("status").className = "pill bad";
     setTimeout(connect, 3000);
   };
-  ws.onerror = () => ws.close();
   ws.onmessage = ev => {
     const e = JSON.parse(ev.data);
-    if (e.kind === "room_info") return updateRoomInfo(e);
-    if (e.kind === "vip_info") return updateVipCount(e);
+    if (e.kind === "room_info") {
+      const ls = $("liveStatus"); ls.style.display = "";
+      ls.textContent = e.show_status === 1 ? "直播中" : "未开播";
+      ls.className = "pill " + (e.show_status === 1 ? "live" : "offline");
+      return;
+    }
+    if (e.kind === "vip_info") {
+      $("vipCount").textContent = e.vip_count + " 贵宾"; $("vipCount").style.display = "";
+      return;
+    }
     if (e.kind === "chat") return pushChat(e);
     if (e.kind === "hot_barrage") return pushHotBarrage(e);
     if (e.kind === "gift") { insertIntoGiftFeed(e); refreshGiftCount(); return; }
     if (e.kind === "superchat") return appendHigh(e);
     if (e.kind === "subscription") { insertIntoGiftFeed(e); refreshGiftCount(); flashBadge(); return; }
     if (e.kind === "done_changed") {
-      // 主播在另一台设备点了 ✓，或是本机乐观更新的服务端确认
       const card = highStream.querySelector(`.ev.superchat[data-id="${e.id}"]`);
-      if (card) {
-        if (e.done_at) card.dataset.done = "1"; else delete card.dataset.done;
-        refreshHighCount();
-      }
-      // 历史 Tab 当前展示的卡片也同步
-      const histCard = $("histFeed").querySelector(`.ev.superchat[data-id="${e.id}"]`);
-      if (histCard) {
-        if (e.done_at) histCard.dataset.done = "1"; else delete histCard.dataset.done;
-      }
-      return;
+      if (card) { if (e.done_at) card.dataset.done = "1"; else delete card.dataset.done; refreshHighCount(); }
     }
   };
 }
 
-// ----------- backfill 当日数据 -----------
-function todayWindowStart() {
-  const now = new Date();
-  const anchor = new Date(now); anchor.setHours(4, 0, 0, 0);
-  if (now < anchor) anchor.setDate(anchor.getDate() - 1);
-  return anchor.getTime();
-}
-
-async function backfillToday() {
-  const since = todayWindowStart();
-  let rows;
-  try {
-    rows = await fetch(`/api/history?since_ms=${since}&limit=500`).then(r => r.json());
-  } catch { return; }
-  if (!Array.isArray(rows)) return;
-  // /api/history 返回 id DESC；倒序成时间正序后再 prepend
-  for (const r of rows.slice().reverse()) {
-    if (r.kind === "gift" || r.kind === "subscription") {
-      insertIntoGiftFeed(r, { backfill: true });
-    } else if (r.kind === "superchat") {
-      appendHigh(r);
-    }
-  }
-  ttlSweep();           // backfill 中混进的旧 transient 立刻按 TTL 清理
-  refreshGiftCount();
-}
-
-// ----------- 历史 Tab -----------
-async function loadHistory() {
-  const date = $("histDate").value;
-  const kind = $("histKind").value;
-  if (!date) return;
-  const since = new Date(date + "T04:00:00").getTime();
-  const until = since + 86400000;
-  const params = new URLSearchParams();
-  params.set("since_ms", since);
-  params.set("until_ms", until);
-  if (kind) params.set("kind", kind);
-  params.set("limit", "500");
-  const feed = $("histFeed"); feed.innerHTML = "";
-  let rows;
-  try {
-    rows = await fetch("/api/history?" + params).then(r => r.json());
-  } catch {
-    feed.innerHTML = '<div class="empty">查询失败</div>';
-    return;
-  }
-  if (!Array.isArray(rows) || !rows.length) {
-    feed.innerHTML = '<div class="empty">无数据</div>';
-    $("histSummary").textContent = `${date} 无数据`;
-    return;
-  }
-  for (const r of rows) feed.appendChild(renderEvent(r));
-  $("histSummary").textContent = `${date} · ${rows.length} 条${rows.length >= 500 ? "（已达上限 500）" : ""}`;
-}
-$("histLoad").onclick = loadHistory;
-$("histExport").onclick = () => {
-  const date = $("histDate").value;
-  const kind = $("histKind").value;
-  const params = new URLSearchParams();
-  if (date) params.set("date", date);
-  if (kind) params.set("kind", kind);
-  if (ADMIN_KEY) params.set("key", ADMIN_KEY);
-  location.href = "/api/export.csv?" + params;
-};
-
-// ----------- stats poll -----------
-async function refreshStats() {
-  try {
-    const s = await fetch("/api/stats").then(r => r.json());
-    $("stats").textContent = `鱼翅 ${Math.round(s.total_yuchi || 0)} · 高能 ${s.superchat_events}`;
-    $("stats").style.display = "";
-  } catch {}
-}
-
 // ----------- init -----------
-$("giftThreshold").value = PREF.gift_threshold;
-$("giftThreshold").addEventListener("change", e => {
-  PREF.gift_threshold = parseFloat(e.target.value) || 0;
-  onThresholdChange();
-});
-refreshGiftHint();
-
-$("histDate").value = (() => {
-  const d = new Date(); const p = n => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-})();
-
 (async () => {
   const cfg = await fetch("/api/config").then(r => r.json());
-  $("room").textContent = "房间 " + (cfg.room_id || "(未配置)");
+  $("room").textContent = "房间 " + cfg.room_id;
   await checkAdmin();
   applyTab();
-  await backfillToday();
+  
+  const since = (() => {
+    const d = new Date(); d.setHours(4,0,0,0);
+    if (new Date() < d) d.setDate(d.getDate()-1);
+    return d.getTime();
+  })();
+  const rows = await fetch(`/api/history?since_ms=${since}&limit=500`).then(r => r.json());
+  if (Array.isArray(rows)) {
+    rows.slice().reverse().forEach(r => {
+      if (r.kind === "gift" || r.kind === "subscription") insertIntoGiftFeed(r, {backfill:true});
+      else if (r.kind === "superchat") appendHigh(r);
+    });
+  }
+  refreshGiftCount();
   connect();
-  refreshStats();
-  setInterval(refreshStats, 15000);
+  
+  const refreshStats = async () => {
+    const s = await fetch("/api/stats").then(r => r.json());
+    $("stats").textContent = `鱼翅 ${Math.round(s.total_yuchi)} · 高能 ${s.superchat_events}`;
+    $("stats").style.display = "";
+  };
+  refreshStats(); setInterval(refreshStats, 15000);
 })();
+
+$("giftThreshold").value = PREF.gift_threshold;
+$("giftThreshold").onchange = e => { PREF.gift_threshold = parseFloat(e.target.value) || 0; onThresholdChange(); };
+$("histDate").value = new Date().toISOString().split('T')[0];
+$("histLoad").onclick = async () => {
+  const since = new Date($("histDate").value + "T04:00:00").getTime();
+  const params = new URLSearchParams({since_ms: since, until_ms: since+86400000, limit:500});
+  if ($("histKind").value) params.set("kind", $("histKind").value);
+  const rows = await fetch("/api/history?" + params).then(r => r.json());
+  const f = $("histFeed"); f.innerHTML = "";
+  if (!rows.length) f.innerHTML = '<div class="empty">无数据</div>';
+  else rows.forEach(r => f.appendChild(renderEvent(r)));
+  $("histSummary").textContent = `查询到 ${rows.length} 条`;
+};
+$("histExport").onclick = () => {
+  location.href = `/api/export.csv?date=${$("histDate").value}&kind=${$("histKind").value}&key=${ADMIN_KEY}`;
+};
 </script>
 </body>
 </html>

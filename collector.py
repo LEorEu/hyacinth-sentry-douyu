@@ -10,6 +10,7 @@ import asyncio
 import json
 import logging
 import time
+from collections import OrderedDict
 from pathlib import Path
 from typing import Awaitable, Callable, Dict
 
@@ -20,6 +21,17 @@ log = logging.getLogger(__name__)
 DANMAKU_HOST = "danmuproxy.douyu.com"
 DANMAKU_PORT = 8601
 HEARTBEAT_INTERVAL = 45
+
+# 礼物入库阈值 (鱼翅)。catalog 已知价格 < 此值 → drop, 不入 DB 也不广播。
+# price_yuchi=None (catalog 未收录的新礼物) 一律保留作为安全网。
+# 设为 6 与前端默认 gift_threshold_yuchi 一致 — 主播看不到的就不存。
+STORE_THRESHOLD_YUCHI = 6.0
+
+# 订阅类事件 (钻粉/贵族开通) 实测会在多个 gid 通道重复广播,导致同秒入库两条。
+# 用 (type, uid) 在 5s 窗口去重; LRU 大小 256 足够覆盖瞬时高峰。
+_DEDUP_TYPES = {"dfobc", "dfrbc", "odfpbc", "rdfpbc", "anbc", "rnewbc"}
+_DEDUP_WINDOW_MS = 5000
+_DEDUP_LRU_CAP = 256
 
 # 未识别 type 的 body 写到此文件供后续分析；每个 type 最多 _DIAG_SAMPLES 条样本
 _DIAG_LOG_PATH = Path(__file__).parent / "diag.log"
@@ -87,18 +99,45 @@ _DIAG_NOISE = {
     "rtss_complete",    # 任务奖励发放
     "dfv2", "dfv2_pd_sw",  # 钻粉 v2 卡牌/段位
     "growth_wel_banner",   # 用户成长欢迎横幅
+    "newblackres",         # 黑名单/禁言操作回执 (含 sid/did/endtime), 与礼物无关
 }
 
 
 class Collector:
-    def __init__(self, room_id: int, on_event: OnEvent, gift_catalog: Dict[int, dict] | None = None):
+    def __init__(
+        self,
+        room_id: int,
+        on_event: OnEvent,
+        gift_catalog: Dict[int, dict] | None = None,
+        pandora_catalog: Dict[int, dict] | None = None,
+    ):
         self.room_id = room_id
         self.on_event = on_event
         self.gift_catalog: Dict[int, dict] = gift_catalog or {}
+        self.pandora_catalog: Dict[int, dict] = pandora_catalog or {}
         self._stop = asyncio.Event()
         self._task: asyncio.Task | None = None
         self._unknown_counts: dict[str, int] = {}
         self._diag_fp = None
+        self._dedup: "OrderedDict[tuple, int]" = OrderedDict()
+
+    def _is_duplicate(self, t: str, kv: dict, ts_ms: int) -> bool:
+        """Suppress same-(type, uid) events within DEDUP_WINDOW_MS for known-noisy types."""
+        if t not in _DEDUP_TYPES:
+            return False
+        uid = str(kv.get("uid") or kv.get("src_uid") or "")
+        if not uid:
+            return False  # no uid, can't dedup safely
+        key = (t, uid)
+        last = self._dedup.get(key)
+        if last is not None and ts_ms - last < _DEDUP_WINDOW_MS:
+            self._dedup.move_to_end(key)
+            return True
+        self._dedup[key] = ts_ms
+        self._dedup.move_to_end(key)
+        if len(self._dedup) > _DEDUP_LRU_CAP:
+            self._dedup.popitem(last=False)
+        return False
 
     def start(self) -> None:
         self._task = asyncio.create_task(self._run_forever(), name=f"douyu-{self.room_id}")
@@ -209,19 +248,40 @@ class Collector:
     async def _dispatch(self, t: str, kv: dict, raw: str) -> None:
         kind = _KIND_MAP[t]
         ts_ms = int(time.time() * 1000)
+        if self._is_duplicate(t, kv, ts_ms):
+            return
         if kind == "gift":
             gfid = _to_int(kv.get("gfid"))
             pid = _to_int(kv.get("pid"))
             count = _to_int(kv.get("gfcnt")) or 1
-            # name resolution: gfn (in payload) > catalog[gfid] > catalog[pid] > placeholder
+            # name resolution: gfn (in payload) > catalog[gfid|pid] > pandora[pid] > placeholder
             name = kv.get("gfn") or None
-            meta_gfid = self.gift_catalog.get(gfid, {}) if gfid else {}
-            meta_pid = self.gift_catalog.get(pid, {}) if pid else {}
+            meta = self.gift_catalog.get(gfid) if gfid else None
+            if not meta and pid:
+                meta = self.gift_catalog.get(pid)
+            meta = meta or {}
+            # 主 catalog 没收录但是乾坤袋抽中礼物 (from=2, pid 在奖品池中) - fallback 到 pandora
+            pandora_meta = self.pandora_catalog.get(pid) if (pid and not meta) else None
             if not name:
-                name = meta_gfid.get("name") or meta_pid.get("name")
+                name = meta.get("name") or (pandora_meta.get("name") if pandora_meta else None)
             if not name:
                 name = f"礼物#{gfid}" if gfid else (f"礼物#pid={pid}" if pid else "未知礼物")
-            price = meta_gfid.get("price_yuchi") or meta_pid.get("price_yuchi")
+            price_yuchi = meta.get("price_yuchi") or 0.0   # YUCHI 真值, 否则 0
+            price_yuwan = meta.get("price_yuwan") or 0.0   # YUWAN 真值, 否则 0
+            # 单位亲密度: 主 catalog 的 intimacy (普通礼物自带), 否则 pandora 的 intimacy_per_unit (乾坤袋抽中)
+            intimacy = (
+                meta.get("intimacy") or 0
+                or (pandora_meta.get("intimacy_per_unit") if pandora_meta else 0)
+            )
+            price_type = meta.get("price_type")  # None = 主 catalog 未收录 (可能 pandora 收录)
+            # 等效鱼翅 (单位): 鱼翅本身 + 亲密度 ÷10。鱼丸不折算 (走亲密度路径或被阈值杀)。
+            effective_yuchi = max(price_yuchi, intimacy / 10.0)
+            # 阈值过滤: 已知低价值 → drop; 完全未收录 (主 catalog & pandora 都没有) → 保留作安全网
+            is_known = (price_type is not None) or (pandora_meta is not None)
+            if is_known and effective_yuchi * count < STORE_THRESHOLD_YUCHI:
+                return
+            # DB price_yuchi 只存真鱼翅 (避免亲密度/鱼丸污染统计总额)
+            db_price = price_yuchi if price_yuchi > 0 else None
             event = {
                 "ts": ts_ms,
                 "room_id": self.room_id,
@@ -231,9 +291,14 @@ class Collector:
                 "gift_id": gfid if gfid else pid,
                 "gift_name": name,
                 "count": count,
-                "price_yuchi": price,
+                "price_yuchi": db_price,
                 "content": None,
                 "raw": raw,
+                # 以下字段不入 DB (db.insert 不读取),仅随 WS payload 推给前端做特殊渲染:
+                "intimacy":        intimacy or None,            # 单位亲密度
+                "price_yuwan":     price_yuwan if price_yuwan > 0 else None,
+                "price_type":      price_type,
+                "effective_yuchi": effective_yuchi,             # 单位等效鱼翅 (前端乘 count)
             }
         elif kind == "superchat" and t == "comm_chatmsg":
             # 高能弹幕 V2: outer carries vrid/btype/cprice/cet, inner chatmsg@= holds user data.
