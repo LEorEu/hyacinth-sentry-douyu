@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Hyacinth Sentry (风信子哨兵)</title>
+<title>Hyacinth Sentry - 风信子哨兵</title>
 <style>
   :root {
     --primary: #818cf8; /* 风信子蓝 */
@@ -195,8 +195,9 @@
     font-size: 10px; margin-left: 4px; font-weight: 800;
   }
 
-  /* 弹幕配置面板样式修复 */
-  #chatConfig .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  /* 通用 filters 行: 自动 wrap, 元素之间留 gap */
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .filters + .filters { margin-top: 8px; }
   #chatConfig .filters input { flex: 1; min-width: 150px; }
   #chatConfig .filters button { white-space: nowrap; }
 
@@ -236,6 +237,16 @@
     border-radius: 100px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 4px;
   }
 
+  /* 弹幕配置区按钮: 暂停/开始 toggle + 清空 (统一矮按钮风格) */
+  .btn-toolbar { display: flex; gap: 8px; align-items: center; }
+  .btn-toolbar button {
+    padding: 4px 12px; font-size: 12px; font-weight: 700;
+    border-radius: 6px; border: none; cursor: pointer;
+  }
+  #chatPauseBtn[data-paused="0"] { background: #ef4444; color: #fff; }   /* 当前运行中 → 显"暂停" */
+  #chatPauseBtn[data-paused="1"] { background: #10b981; color: #fff; }   /* 当前已停 → 显"开始" */
+  #chatClear { background: var(--border); color: var(--text-dim); }
+
   /* 登录 modal */
   .modal-mask {
     position: fixed; inset: 0; z-index: 200;
@@ -274,7 +285,7 @@
   <div class="inner">
     <div class="brand">
       <div class="avatar placeholder" id="ownerAvatar">🪻</div>
-      <h1 id="ownerName">主播手记</h1>
+      <h1 id="ownerName">Hyacinth Sentry</h1>
       <div class="badge-flash" id="badgeFlash"></div>
     </div>
     <div class="status-pills">
@@ -295,11 +306,15 @@
   <!-- 礼物 + 高能 (PC 端 ≥1024px 双栏并列) -->
   <div class="dashboard-grid">
     <div class="view" id="view-gift">
+      <div class="panel admin-only" id="giftConfig" style="margin-bottom:8px">
+        <div class="filters">
+          <label style="font-size:13px;font-weight:600">展示阈值（鱼翅）</label>
+          <input type="number" id="giftThreshold" value="6" min="0" step="1" style="flex:1; min-width: 80px">
+          <button id="giftThresholdApply">应用</button>
+        </div>
+      </div>
       <div class="panel">
         <h2>礼物 <span class="hint" id="giftCount"></span></h2>
-        <div class="filters">
-          <label style="font-size:12px">阈值 <input type="number" id="giftThreshold" value="6" style="width:50px; padding:2px 4px"></label>
-        </div>
         <div class="feed" id="giftFeed"></div>
       </div>
     </div>
@@ -321,9 +336,9 @@
         <button id="addPinKw">添加</button>
       </div>
       <div class="pin-kw-list" id="pinKwList" style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap"></div>
-      <div style="margin-top:12px; display:flex; gap:10px; align-items:center">
-        <label style="font-size:12px"><input type="checkbox" id="chatPause"> 暂停</label>
-        <button id="chatClear" style="background:var(--border);color:var(--text-dim);font-size:12px;padding:2px 8px;border-radius:4px">清空</button>
+      <div class="btn-toolbar" style="margin-top:12px">
+        <button id="chatPauseBtn" data-paused="0">暂停</button>
+        <button id="chatClear">清空</button>
       </div>
     </div>
     <div class="panel">
@@ -772,8 +787,9 @@ function buildChatNode(e, opts) {
   return div;
 }
 
+let chatPaused = false;
 function pushChat(e) {
-  if ($("chatPause").checked) return;
+  if (chatPaused) return;
   const txt = (e.content || "").trim();
   if (chatPinKeywords.some(kw => kw && txt.includes(kw))) {
     const node = buildChatNode(e, { pinned: true, count: 1 });
@@ -833,6 +849,12 @@ $("pinKwList").onclick = ev => {
   }
 };
 renderPinKwList();
+$("chatPauseBtn").onclick = () => {
+  chatPaused = !chatPaused;
+  const btn = $("chatPauseBtn");
+  btn.dataset.paused = chatPaused ? "1" : "0";
+  btn.textContent = chatPaused ? "开始" : "暂停";
+};
 $("chatClear").onclick = () => {
   chatStream.innerHTML = ""; hotStream.innerHTML = ""; dedupChat.clear(); hotItems.clear();
 };
@@ -916,7 +938,13 @@ function connect() {
 })();
 
 $("giftThreshold").value = PREF.gift_threshold;
-$("giftThreshold").onchange = e => { PREF.gift_threshold = parseFloat(e.target.value) || 0; onThresholdChange(); };
+$("giftThresholdApply").onclick = () => {
+  PREF.gift_threshold = parseFloat($("giftThreshold").value) || 0;
+  onThresholdChange();
+};
+$("giftThreshold").addEventListener("keydown", e => {
+  if (e.key === "Enter") { e.preventDefault(); $("giftThresholdApply").click(); }
+});
 $("histDate").value = new Date().toISOString().split('T')[0];
 // 高能筛选器仅在选了 kind=superchat 时显示
 $("histKind").onchange = () => {
