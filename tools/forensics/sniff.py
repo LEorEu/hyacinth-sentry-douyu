@@ -4,7 +4,7 @@
   sniff/<room>_interesting.log — only unknown / rare types (i.e. NOT in NOISE)
 
 Usage:
-  python -m hyacinth_sentry.sniff 12740109
+  python -m tools.forensics.sniff 12740109
   # ...let it run, watch the live in browser, note local time when the
   # blue 'SuperChat' card appears, then look at *_interesting.log around
   # that time to find the message type.
@@ -19,7 +19,7 @@ import time
 from collections import Counter
 from pathlib import Path
 
-from . import protocol as proto
+from hyacinth_sentry import protocol as proto
 
 HOST = "danmuproxy.douyu.com"
 PORT = 8601

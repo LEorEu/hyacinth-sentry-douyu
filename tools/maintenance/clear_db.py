@@ -1,8 +1,8 @@
 """Clear the events table. Backs up the DB first.
 
 Run:
-  python -m hyacinth_sentry.clear_db          # interactive: asks Y/n
-  python -m hyacinth_sentry.clear_db --yes    # skip confirm (for scripts)
+  python -m tools.maintenance.clear_db          # interactive: asks Y/n
+  python -m tools.maintenance.clear_db --yes    # skip confirm (for scripts)
 
 Stop the server before running if you want VACUUM to reclaim disk space —
 otherwise the WAL keeps the file size and VACUUM will be skipped silently.
@@ -15,7 +15,7 @@ import sys
 import time
 from pathlib import Path
 
-from . import PROJECT_DIR
+from hyacinth_sentry import PROJECT_DIR
 
 DB = PROJECT_DIR / "events.db"
 

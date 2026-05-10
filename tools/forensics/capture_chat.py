@@ -5,7 +5,7 @@ server — Douyu allows multiple TCP sessions per room, no conflict.
 
 Output: one JSON object per line: {ts, nn, uid, txt, col}.
 
-  python -m hyacinth_sentry.capture_chat <room_id> [--duration 300] [--out chat_sample.jsonl]
+  python -m tools.forensics.capture_chat <room_id> [--duration 300] [--out chat_sample.jsonl]
 """
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ import sys
 import time
 from pathlib import Path
 
-from . import protocol as proto
+from hyacinth_sentry import protocol as proto
 
 HOST = "danmuproxy.douyu.com"
 PORT = 8601

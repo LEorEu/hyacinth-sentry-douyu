@@ -29,7 +29,7 @@
 
 ### 💬 弹幕 Tab —— 复读自然合并
 - 同样内容的弹幕**自动合并**为一条,带 `+N` 计数徽标
-- 主播自定义关键词(自己昵称、口头禅)→ 命中后**单独飘红 hold 30 秒**,不会被复读吞掉
+- 主播自定义关键词→ 命中后**单独飘红 hold 30 秒**,不会被复读吞掉
 - 1 分钟没人再刷的复读自动消失,屏幕永远清爽
 - 下方实时显示斗鱼自家的"N 人在说 XXX"热梗
 
@@ -64,19 +64,32 @@ pip install -r requirements.txt
 |---|---|---|
 | `DOUYU_ROOM_ID` | ✅ | 直播间号(URL 末尾的数字) |
 | `DOUYU_DB` | 否 | SQLite 文件路径,默认在项目目录下 `events.db` |
+| `DOUYU_ADMIN_PASSWORD` | 否 | 主播模式登录密码；未设置时默认 `admin`，公网部署前必须设置 |
 
 ### 3. 跑起来
 
 ```powershell
-$env:DOUYU_ROOM_ID = "你的房间号"
+$env:DOUYU_ROOM_ID = "输入你要的房间号"
+$env:DOUYU_ADMIN_PASSWORD = "设置主播模式的登录密码"
 python -m uvicorn hyacinth_sentry.server:app --host 0.0.0.0 --port 3000
 ```
 
 ### 4. 用起来
 
 - 浏览器打开 `http://localhost:3000`,默认观众视图(只读)
-- 主播模式:点右上角"登录",输密码进入。默认密码 `admin` (后续做修改密码后台前临时硬编码)
+- 主播模式:点右上角"登录",输密码进入。密码来自环境变量 `DOUYU_ADMIN_PASSWORD`,未设置时默认 `admin`，公网部署前必须设置
 - 同房间观众:把机器 IP:3000 给他们,不登录就看不到 ✓ 状态切换/CSV 导出
+
+### 5. 维护命令
+
+- 维护脚本在 `tools/maintenance/`,排障/取证脚本在 `tools/forensics/`
+- 一键清空本地数据库:
+
+```powershell
+python -m tools.maintenance.clear_db --yes
+```
+
+- `clear_db` 会先备份数据库；如果想让 `VACUUM` 真正回收文件体积，先停服务再执行
 
 ---
 
@@ -97,9 +110,9 @@ python -m uvicorn hyacinth_sentry.server:app --host 0.0.0.0 --port 3000
 - ✅ 乾坤袋亲密度礼物显示(抓 pandora API + 等效鱼翅折算)
 - ✅ collector 阈值过滤,免费礼物不入 DB(防 ID 自增膨胀)
 - ✅ 订阅事件多 gid 去重(钻粉重复 bug 修复)
-- ⏳ 移动端适配(户外手机第一公民)
-- ⏳ 震动通知(`navigator.vibrate`,大礼物来了让你的手感觉到)
-- ⏸ 高能弹幕自动分类(点歌/任务,需要主播提供真实词表)
+- ✅ 移动端适配(户外手机第一公民)
+- ⏳ 震动通知(`navigator.vibrate`,移动端震动通知，尚未测试)
+- ⏳ 高能弹幕自动分类(点歌/视频/任务)
 
 设计笔记保留为本地私有文档,不再随仓库发布。
 

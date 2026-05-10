@@ -2,7 +2,7 @@
 let the real collector connect to room 60937 for ~20s, then assert we got
 chat (and possibly gift) events flowing through both DB write + WS broadcast.
 
-Run:  python -m hyacinth_sentry.e2e_smoke
+Run:  python -m tests.manual_e2e_smoke
 """
 from __future__ import annotations
 
