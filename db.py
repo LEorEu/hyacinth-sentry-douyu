@@ -78,6 +78,8 @@ class Store:
         since_ms: int | None = None,
         until_ms: int | None = None,
         before_id: int | None = None,
+        q: str | None = None,
+        done_filter: str | None = None,
         limit: int = 100,
     ) -> list[dict]:
         sql = ["SELECT * FROM events WHERE room_id = ?"]
@@ -97,6 +99,17 @@ class Store:
         if before_id is not None:
             sql.append("AND id < ?")
             args.append(before_id)
+        if q:
+            # content/nickname/gift_name 模糊匹配; 高能搜索的主用例是 content,
+            # 但礼物搜礼物名也合理, 一并扫
+            sql.append("AND (content LIKE ? OR nickname LIKE ? OR gift_name LIKE ?)")
+            like = f"%{q}%"
+            args.extend([like, like, like])
+        # 高能弹幕的"已响应/未响应"过滤; 仅 superchat 有 done_at
+        if done_filter == "pending":
+            sql.append("AND done_at IS NULL")
+        elif done_filter == "done":
+            sql.append("AND done_at IS NOT NULL")
         sql.append("ORDER BY id DESC LIMIT ?")
         args.append(min(max(1, limit), 500))
         rows = self._conn.execute(" ".join(sql), args).fetchall()

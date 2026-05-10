@@ -28,8 +28,18 @@ HEARTBEAT_INTERVAL = 45
 STORE_THRESHOLD_YUCHI = 6.0
 
 # 订阅类事件 (钻粉/贵族开通) 实测会在多个 gid 通道重复广播,导致同秒入库两条。
-# 用 (type, uid) 在 5s 窗口去重; LRU 大小 256 足够覆盖瞬时高峰。
-_DEDUP_TYPES = {"dfobc", "dfrbc", "odfpbc", "rdfpbc", "anbc", "rnewbc"}
+# 注意斗鱼对同一次钻粉操作还会下发两种 type 副本: dfobc/odfpbc (开通含/不含 price)
+# 与 dfrbc/rdfpbc (续费含/不含 price) — 必须按"事件组"折,而不是按 type 折,
+# 否则同 uid 同秒会留下双份 (实测 2026-05-09 #1830 dfrbc + #1831 rdfpbc)。
+# 5s 窗口先到先得; LRU 大小 256 足够覆盖瞬时高峰。
+_DEDUP_GROUP = {
+    "dfobc":  "df_open",   # 开通钻粉 (含 price)
+    "odfpbc": "df_open",   # 开通钻粉 (无 price, 双发副本)
+    "dfrbc":  "df_renew",  # 续费钻粉 (含 price)
+    "rdfpbc": "df_renew",  # 续费钻粉 (无 price, 双发副本)
+    "anbc":   "anbc",      # 贵族开通 — 暂未观察到双发, 各自独立
+    "rnewbc": "rnewbc",    # 贵族续费
+}
 _DEDUP_WINDOW_MS = 5000
 _DEDUP_LRU_CAP = 256
 
@@ -122,13 +132,14 @@ class Collector:
         self._dedup: "OrderedDict[tuple, int]" = OrderedDict()
 
     def _is_duplicate(self, t: str, kv: dict, ts_ms: int) -> bool:
-        """Suppress same-(type, uid) events within DEDUP_WINDOW_MS for known-noisy types."""
-        if t not in _DEDUP_TYPES:
+        """Suppress same-(group, uid) events within DEDUP_WINDOW_MS for known-noisy types."""
+        group = _DEDUP_GROUP.get(t)
+        if group is None:
             return False
         uid = str(kv.get("uid") or kv.get("src_uid") or "")
         if not uid:
             return False  # no uid, can't dedup safely
-        key = (t, uid)
+        key = (group, uid)
         last = self._dedup.get(key)
         if last is not None and ts_ms - last < _DEDUP_WINDOW_MS:
             self._dedup.move_to_end(key)

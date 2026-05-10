@@ -61,7 +61,6 @@ pip install -r requirements.txt
 | 变量 | 必填 | 说明 |
 |---|---|---|
 | `DOUYU_ROOM_ID` | ✅ | 直播间号(URL 末尾的数字) |
-| `DOUYU_ADMIN_KEY` | 否 | 设了就区分主播/观众;留空表示单机模式所有人都是主播 |
 | `DOUYU_DB` | 否 | SQLite 文件路径,默认在项目目录下 `events.db` |
 
 ### 3. 跑起来
@@ -73,9 +72,9 @@ python -m uvicorn server:app --host 0.0.0.0 --port 3000
 
 ### 4. 用起来
 
-- 自己用:浏览器打开 `http://localhost:3000`
-- 主播模式(配了 `DOUYU_ADMIN_KEY`):第一次访问加 `?key=你的key`,之后免再带
-- 同房间观众:把机器 IP:3000 给他们,默认观众视图(只读,不能改东西)
+- 浏览器打开 `http://localhost:3000`,默认观众视图(只读)
+- 主播模式:点右上角"登录",输密码进入。默认密码 `admin` (后续做修改密码后台前临时硬编码)
+- 同房间观众:把机器 IP:3000 给他们,不登录就看不到 ✓ 状态切换/CSV 导出
 
 ---
 

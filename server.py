@@ -26,7 +26,9 @@ log = logging.getLogger(__name__)
 
 ROOM_ID = int(os.environ.get("DOUYU_ROOM_ID", "0"))
 DB_PATH = os.environ.get("DOUYU_DB", str(Path(__file__).parent / "events.db"))
-ADMIN_KEY = os.environ.get("DOUYU_ADMIN_KEY", "")  # empty = single-user mode (no auth)
+# 主播登录密码: 部署到公网时通过环境变量 DOUYU_ADMIN_PASSWORD 注入真实密码,
+# 不设则 fallback 到 "admin" (本地单机用方便)。源码不存真密码,git pull 不冲突。
+ADMIN_PASSWORD = os.environ.get("DOUYU_ADMIN_PASSWORD", "admin")
 STATIC_DIR = Path(__file__).parent / "static"
 
 BETARD_URL = "https://www.douyu.com/betard/{rid}"
@@ -113,11 +115,9 @@ def _require_admin(
     x_admin_key: str | None = Header(None),
     key: str | None = Query(None),
 ) -> bool:
-    """Admin gate. Empty ADMIN_KEY → solo-user mode, no auth required."""
-    if not ADMIN_KEY:
-        return True
-    if (x_admin_key or key) != ADMIN_KEY:
-        raise HTTPException(403, "admin key invalid")
+    """Admin gate. Must match ADMIN_PASSWORD. ?key= is accepted for GET redirects (CSV export)."""
+    if (x_admin_key or key) != ADMIN_PASSWORD:
+        raise HTTPException(403, "admin password invalid")
     return True
 
 
@@ -158,12 +158,21 @@ async def _betard_loop() -> None:
                 if not isinstance(room, dict):
                     room = {}
                 # 在线热度(hn/online/hot)用户已确认无意义,贵宾数走 oni 推送; 这里只保留开播状态
+                # avatar 字段实测有 avatar.{big,middle,small} / avatar_mid / owner_avatar 多种, 任取其一
+                avatar = room.get("avatar") or {}
+                avatar_url = (
+                    room.get("owner_avatar")
+                    or room.get("avatar_mid")
+                    or (isinstance(avatar, dict) and (avatar.get("middle") or avatar.get("big") or avatar.get("small")))
+                    or None
+                )
                 payload = {
                     "kind": "room_info",
                     "ts": int(time.time() * 1000),
                     "show_status": _to_int(room.get("show_status")),
                     "room_name": room.get("room_name") or None,
-                    "owner_name": room.get("owner_name") or None,
+                    "owner_name": room.get("nickname") or room.get("owner_name") or None,
+                    "avatar_url": avatar_url,
                 }
                 if payload != last:
                     await hub.broadcast(payload)
@@ -188,10 +197,7 @@ async def _startup() -> None:
     collector.start()
     _betard_task = asyncio.create_task(_betard_loop(), name=f"betard-{ROOM_ID}")
     log.info("collector started for room %d, db=%s", ROOM_ID, DB_PATH)
-    if ADMIN_KEY:
-        log.info("admin mode enabled (DOUYU_ADMIN_KEY set)")
-    else:
-        log.info("admin mode disabled — solo-user (set DOUYU_ADMIN_KEY to gate write actions)")
+    log.info("admin password = %r (login required to toggle done / export CSV)", ADMIN_PASSWORD)
 
 
 @app.on_event("shutdown")
@@ -218,10 +224,8 @@ async def api_me(
     x_admin_key: str | None = Header(None),
     key: str | None = Query(None),
 ):
-    if not ADMIN_KEY:
-        return {"is_admin": True, "admin_enabled": False}
-    is_admin = (x_admin_key == ADMIN_KEY) or (key == ADMIN_KEY)
-    return {"is_admin": is_admin, "admin_enabled": True}
+    is_admin = (x_admin_key == ADMIN_PASSWORD) or (key == ADMIN_PASSWORD)
+    return {"is_admin": is_admin}
 
 
 @app.get("/api/history")
@@ -231,6 +235,8 @@ async def api_history(
     since_ms: int | None = None,
     until_ms: int | None = None,
     before_id: int | None = None,
+    q: str | None = Query(None, max_length=80),
+    done: str | None = Query(None, pattern="^(pending|done|all)$"),
     limit: int = 100,
 ):
     if ROOM_ID <= 0:
@@ -242,6 +248,8 @@ async def api_history(
         since_ms=since_ms,
         until_ms=until_ms,
         before_id=before_id,
+        q=q,
+        done_filter=done if done and done != "all" else None,
         limit=limit,
     )
 

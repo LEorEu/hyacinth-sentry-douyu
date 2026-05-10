@@ -54,11 +54,34 @@
     position: sticky; top: 0; z-index: 50;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   }
-  header .top-row { display: flex; align-items: center; justify-content: space-between; width: 100%; }
-  header h1 { font-size: 16px; margin: 0; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 4px; }
-  header h1::before { content: "🪻"; font-size: 18px; }
-  
-  header .status-pills { display: flex; gap: 4px; flex-wrap: wrap; width: 100%; }
+  /* grid 布局: 移动端 brand+auth 一行 / pills 一行; PC 端 brand|pills|auth 一行 */
+  header .inner {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "brand auth"
+      "pills pills";
+    gap: 8px; align-items: center;
+    max-width: 1280px; margin: 0 auto; width: 100%;
+  }
+  header .brand {
+    grid-area: brand; display: flex; align-items: center; gap: 8px; min-width: 0;
+  }
+  header .auth-actions { grid-area: auth; display: flex; gap: 6px; flex-shrink: 0; }
+  header .brand .avatar {
+    width: 32px; height: 32px; border-radius: 50%; object-fit: cover;
+    background: var(--bg-page); border: 1px solid var(--border); flex-shrink: 0;
+  }
+  header .brand .avatar.placeholder {
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-dim); font-size: 16px;
+  }
+  header h1 {
+    font-size: 16px; margin: 0; font-weight: 700; color: var(--primary);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+  }
+
+  header .status-pills { grid-area: pills; display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
   header .pill {
     padding: 2px 8px; border-radius: 6px; background: var(--bg-page);
     font-size: 11px; white-space: nowrap; color: var(--text-dim); font-weight: 600;
@@ -67,7 +90,12 @@
   header .pill.ok { border-color: #10b981; color: #10b981; }
   header .pill.bad { border-color: #ef4444; color: #ef4444; }
   header .pill.live { background: #ffe4e6; color: #e11d48; border-color: #fda4af; }
-  header .pill.admin { background: #f3e8ff; color: #7e22ce; border-color: #d8b4fe; }
+  header .pill-btn {
+    padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 700;
+    background: var(--primary); color: #fff; border: none; cursor: pointer;
+    flex-shrink: 0;
+  }
+  header .pill-btn:active { transform: scale(0.95); }
 
   header .badge-flash {
     width: 8px; height: 8px; border-radius: 50%; background: var(--accent); opacity: 0;
@@ -85,17 +113,15 @@
     z-index: 100; padding-bottom: env(safe-area-inset-bottom);
     box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
   }
+  nav.tabs .nav-inner { display: flex; align-items: center; justify-content: space-around; max-width: 1280px; margin: 0 auto; width: 100%; height: 100%; }
   nav.tabs a {
     flex: 1; height: 100%; display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
+    align-items: center; justify-content: center; gap: 2px;
     text-decoration: none; color: var(--text-dim); font-size: 11px; font-weight: 600;
   }
-  nav.tabs a::before { font-size: 20px; margin-bottom: 2px; }
-  nav.tabs a[data-tab="gift"]::before { content: "🎁"; }
-  nav.tabs a[data-tab="high"]::before { content: "⚡"; }
-  nav.tabs a[data-tab="chat"]::before { content: "💬"; }
-  nav.tabs a[data-tab="history"]::before { content: "📅"; }
+  nav.tabs a .ico { width: 22px; height: 22px; stroke: currentColor; }
   nav.tabs a.active { color: var(--primary); background: var(--primary-soft); }
+  nav.tabs a.active .ico { stroke: var(--primary); }
   
   main {
     padding: 12px 12px calc(var(--nav-h) + 20px + env(safe-area-inset-bottom));
@@ -103,6 +129,8 @@
   }
   .view { display: none; animation: fadeIn 0.2s ease; }
   .view.active { display: block; }
+  /* 桌面端把礼物 + 高能两栏并排; 移动端 display:contents 让子元素直接受 .view 控制 */
+  .dashboard-grid { display: contents; }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
   .panel {
@@ -120,6 +148,7 @@
     padding: 10px 12px; border-radius: var(--radius);
     background: var(--bg-card); border: 1px solid var(--border);
     position: relative; transition: transform 0.1s;
+    flex-shrink: 0;   /* 防 .feed flex column 被 max-height 限制时压缩单条卡片 */
   }
   .ev .meta { font-size: 10px; color: var(--text-dim); margin-bottom: 4px; display: flex; gap: 8px; font-family: monospace; }
   .ev .meta .id { opacity: 0.6; }
@@ -133,13 +162,30 @@
   .ev .price.intimacy { color: #d05a8c; }    /* 亲密度礼物 (乾坤袋抽中类): 粉红 */
 
   /* 高能卡片状态 */
-  .ev.superchat[data-done="1"] { opacity: 0.5; filter: grayscale(0.6); }
-  .ev.superchat[data-done="1"] .body { text-decoration: line-through; }
-  .ev.superchat[data-done="1"]::after {
-    content: "✓"; position: absolute; right: 10px; top: 10px; color: #10b981; font-weight: 900;
+  .ev.superchat { overflow: hidden; padding: 0; }   /* swipe-fg 自带 padding, 容器去除 */
+  .ev.superchat .swipe-bg {
+    position: absolute; inset: 0; background: #10b981; color: #fff;
+    display: flex; align-items: center; justify-content: flex-end;
+    padding: 0 16px; font-weight: 800; font-size: 14px;
+    opacity: 0; transition: opacity 0.15s;       /* 平时不可见, 滑动时才显 */
   }
+  .ev.superchat[data-done="1"] .swipe-bg { background: #6b7280; }
+  .ev.superchat.swiping .swipe-bg { opacity: 1; }
+  .ev.superchat .swipe-fg {
+    position: relative; display: block; width: 100%;
+    background: var(--bg-card);
+    padding: 10px 12px; transition: transform 0.2s ease; z-index: 1;
+  }
+  .ev.superchat.swiping .swipe-fg { transition: none; }
+  /* 已完成态: 文本变灰 + 删除线; 不要再叠 ::after 的 ✓ 角标 (用户反馈太乱) */
+  .ev.superchat[data-done="1"] .swipe-fg { color: var(--text-dim); }
+  .ev.superchat[data-done="1"] .swipe-fg .body,
+  .ev.superchat[data-done="1"] .swipe-fg .body * { text-decoration: line-through; color: var(--text-dim); }
+  /* 仅 admin 时光标提示可点 / 可滑 */
+  body.admin .ev.superchat .swipe-fg { cursor: pointer; }
 
-  .ev.subscription { border-left: 4px solid #10b981; }
+  .ev.subscription { border-left: 4px solid #121786; }
+  .ev.subscription .price { color: #121786; }
 
   /* 弹幕卡片 */
   .ev.chat { padding: 4px 12px; border-left: 2px solid var(--border); }
@@ -155,14 +201,23 @@
   #chatConfig .filters button { white-space: nowrap; }
 
   @media (min-width: 768px) {
-    header { flex-direction: row; height: 64px; }
-    header .status-pills { width: auto; flex: 1; justify-content: flex-end; }
-    nav.tabs {
-      position: static; height: 48px; border-top: none; border-bottom: 1px solid var(--border);
-      box-shadow: none; padding: 0 20px;
+    header .inner {
+      grid-template-columns: auto 1fr auto;
+      grid-template-areas: "brand pills auth";
+      gap: 12px;
     }
-    nav.tabs a { flex: none; width: 100px; }
-    main { padding: 20px; max-width: 800px; }
+    header .status-pills { justify-content: flex-end; flex-wrap: nowrap; }
+    nav.tabs a { flex: none; width: 110px; }
+    main {
+      padding: 16px 20px calc(var(--nav-h) + 20px + env(safe-area-inset-bottom));
+      max-width: 1280px;
+    }
+  }
+  /* 桌面端: 礼物 + 高能 双列并排; 进入 gift 或 high tab 都显示双栏 */
+  @media (min-width: 1024px) {
+    .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+    body[data-tab="gift"] .dashboard-grid > .view,
+    body[data-tab="high"] .dashboard-grid > .view { display: block !important; }
   }
 
   .admin-only { display: none !important; }
@@ -180,41 +235,80 @@
     background: var(--primary-soft); color: var(--primary); padding: 4px 10px;
     border-radius: 100px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 4px;
   }
+
+  /* 登录 modal */
+  .modal-mask {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(2px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px; animation: fadeIn 0.15s ease;
+  }
+  .modal-card {
+    background: var(--bg-card); color: var(--text-main);
+    border-radius: var(--radius); padding: 24px;
+    width: 100%; max-width: 360px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--border);
+    animation: modalIn 0.2s ease;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(-12px) scale(0.96); }
+    to   { opacity: 1; transform: none; }
+  }
+  .modal-card h3 { margin: 0 0 4px; font-size: 18px; font-weight: 700; }
+  .modal-card .modal-sub { color: var(--text-dim); font-size: 13px; margin-bottom: 16px; }
+  .modal-card input {
+    width: 100%; padding: 10px 12px; font-size: 16px;
+    border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg-page); color: var(--text-main);
+  }
+  .modal-card input:focus { border-color: var(--primary); outline: none; }
+  .modal-err { color: #ef4444; font-size: 13px; margin-top: 8px; min-height: 18px; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
+  .modal-actions button { padding: 8px 16px; border-radius: 8px; font-size: 14px; }
+  .btn-secondary { background: transparent !important; color: var(--text-dim) !important; border: 1px solid var(--border) !important; }
 </style>
 </head>
 <body>
 <header>
-  <div class="top-row">
-    <h1>Hyacinth Sentry</h1>
-    <div class="badge-flash" id="badgeFlash"></div>
-  </div>
-  <div class="status-pills">
-    <div class="pill" id="room">房间 -</div>
-    <div class="pill" id="status">连接中...</div>
-    <div class="pill offline" id="liveStatus" style="display:none">未开播</div>
-    <div class="pill" id="vipCount" style="display:none">- 贵宾</div>
-    <div class="pill" id="stats" style="display:none">-</div>
-    <div class="pill admin" id="adminPill" style="display:none">主播</div>
+  <div class="inner">
+    <div class="brand">
+      <div class="avatar placeholder" id="ownerAvatar">🪻</div>
+      <h1 id="ownerName">主播手记</h1>
+      <div class="badge-flash" id="badgeFlash"></div>
+    </div>
+    <div class="status-pills">
+      <div class="pill" id="room">房间 -</div>
+      <div class="pill" id="status">连接中...</div>
+      <div class="pill offline" id="liveStatus" style="display:none">未开播</div>
+      <div class="pill" id="vipCount" style="display:none">- 贵宾</div>
+      <div class="pill" id="stats" style="display:none">-</div>
+    </div>
+    <div class="auth-actions">
+      <button class="pill-btn" id="loginBtn">登录</button>
+      <button class="pill-btn" id="logoutBtn" style="display:none">退出</button>
+    </div>
   </div>
 </header>
 
 <main>
-  <!-- 礼物 -->
-  <div class="view" id="view-gift">
-    <div class="panel">
-      <h2>礼物 <span class="hint" id="giftCount"></span></h2>
-      <div class="filters">
-        <label style="font-size:12px">阈值 <input type="number" id="giftThreshold" value="6" style="width:50px; padding:2px 4px"></label>
+  <!-- 礼物 + 高能 (PC 端 ≥1024px 双栏并列) -->
+  <div class="dashboard-grid">
+    <div class="view" id="view-gift">
+      <div class="panel">
+        <h2>礼物 <span class="hint" id="giftCount"></span></h2>
+        <div class="filters">
+          <label style="font-size:12px">阈值 <input type="number" id="giftThreshold" value="6" style="width:50px; padding:2px 4px"></label>
+        </div>
+        <div class="feed" id="giftFeed"></div>
       </div>
-      <div class="feed" id="giftFeed"></div>
     </div>
-  </div>
 
-  <!-- 高能 -->
-  <div class="view" id="view-high">
-    <div class="panel">
-      <h2>高能弹幕 <span class="hint" id="highCount"></span></h2>
-      <div class="feed" id="highFeed"></div>
+    <div class="view" id="view-high">
+      <div class="panel">
+        <h2>高能弹幕 <span class="hint" id="highCount"></span></h2>
+        <div class="feed" id="highFeed"></div>
+      </div>
     </div>
   </div>
 
@@ -255,6 +349,15 @@
         </select>
         <button id="histLoad">查询</button>
       </div>
+      <!-- 高能筛选: 仅 kind=superchat 时展开 -->
+      <div class="filters" id="highFilters" style="display:none">
+        <select id="histDone" style="flex:0 0 110px">
+          <option value="all">全部状态</option>
+          <option value="pending">未响应</option>
+          <option value="done">已响应</option>
+        </select>
+        <input id="histQ" placeholder="关键词搜索 (内容/昵称)" style="flex:1">
+      </div>
       <div class="filters admin-only">
         <button id="histExport" style="width:100%; background:var(--secondary)">导出当日 CSV</button>
       </div>
@@ -264,11 +367,52 @@
   </div>
 </main>
 
+<div class="modal-mask" id="loginModal" style="display:none">
+  <div class="modal-card">
+    <h3>主播登录</h3>
+    <div class="modal-sub">输入密码进入主播模式后才能标记高能完成状态</div>
+    <input type="password" id="loginPw" placeholder="请输入密码" autocomplete="current-password" autocapitalize="off" autocorrect="off">
+    <div class="modal-err" id="loginErr"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="loginCancel">取消</button>
+      <button id="loginSubmit">登录</button>
+    </div>
+  </div>
+</div>
+
 <nav class="tabs">
-  <a data-tab="gift" href="#/">礼物</a>
-  <a data-tab="high" href="#/high">高能</a>
-  <a data-tab="chat" href="#/chat">弹幕</a>
-  <a data-tab="history" href="#/history">历史</a>
+  <div class="nav-inner">
+    <a data-tab="gift" href="#/">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/>
+        <line x1="12" y1="22" x2="12" y2="7"/>
+        <path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/>
+        <path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/>
+      </svg>
+      <span>礼物</span>
+    </a>
+    <a data-tab="high" href="#/high">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+      </svg>
+      <span>高能</span>
+    </a>
+    <a data-tab="chat" href="#/chat">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/>
+      </svg>
+      <span>弹幕</span>
+    </a>
+    <a data-tab="history" href="#/history">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+      <span>历史</span>
+    </a>
+  </div>
 </nav>
 
 <script>
@@ -294,25 +438,57 @@ const PIN_TTL_MS = 30 * 60 * 1000;
 const PIN_PERMANENT = 100;
 const STREAM_MAX = 200;
 
-// ----------- admin key -----------
-const KEY_PARAM = new URLSearchParams(location.search).get("key");
-if (KEY_PARAM) {
-  localStorage.setItem("admin_key", KEY_PARAM);
-  history.replaceState({}, "", location.pathname + location.hash);
-}
-const ADMIN_KEY = localStorage.getItem("admin_key") || "";
-let adminEnabled = false;
+// ----------- admin -----------
+// 全站只有"未登录观众"和"已登录主播"两种角色; 默认密码 admin (后续做修改密码后台前临时硬编码)。
+// URL ?key= 自动写入已取消 (反直觉魔法行为); CSV 导出仍把密码作为 query 拼在 URL 上,
+// 因为 location.href 跳转无法塞自定义 header。
 let isAdmin = false;
+
+function getAdminKey() { return localStorage.getItem("admin_key") || ""; }
+function setAdminKey(v) {
+  if (v) localStorage.setItem("admin_key", v);
+  else localStorage.removeItem("admin_key");
+}
+function adminHeaders() {
+  const k = getAdminKey();
+  return k ? {"x-admin-key": k} : {};
+}
 
 async function checkAdmin() {
   try {
-    const headers = ADMIN_KEY ? {"x-admin-key": ADMIN_KEY} : {};
-    const r = await fetch("/api/me", { headers }).then(r => r.json());
-    adminEnabled = !!r.admin_enabled;
+    const r = await fetch("/api/me", { headers: adminHeaders() }).then(r => r.json());
     isAdmin = !!r.is_admin;
     document.body.classList.toggle("admin", isAdmin);
-    if (adminEnabled && isAdmin) $("adminPill").style.display = "";
+    $("loginBtn").style.display = isAdmin ? "none" : "";
+    $("logoutBtn").style.display = isAdmin ? "" : "none";
   } catch {}
+}
+
+function showLoginModal() {
+  $("loginModal").style.display = "flex";
+  $("loginErr").textContent = "";
+  $("loginPw").value = "";
+  setTimeout(() => $("loginPw").focus(), 50);
+}
+function hideLoginModal() {
+  $("loginModal").style.display = "none";
+}
+async function submitLogin() {
+  const pw = $("loginPw").value.trim();
+  if (!pw) { $("loginPw").focus(); return; }
+  setAdminKey(pw);
+  await checkAdmin();
+  if (isAdmin) {
+    hideLoginModal();
+  } else {
+    setAdminKey("");
+    $("loginErr").textContent = "密码错误";
+    $("loginPw").select();
+  }
+}
+function doLogout() {
+  setAdminKey("");
+  checkAdmin();
 }
 
 // ----------- prefs -----------
@@ -360,11 +536,26 @@ function renderEvent(e) {
     }
     body = `<div class="body"><span class="nick">${escHtml(e.nickname) || "?"}</span>${priceTag}: <span class="content">${escHtml(e.content)}</span></div>`;
   } else if (e.kind === "subscription") {
-    body = `<div class="body"><span class="nick">${escHtml(e.nickname) || "?"}</span> <b>${escHtml(e.gift_name)}</b></div>`;
+    // 钻粉/贵族是 RMB 直购 (1 元 = 10 鱼翅);后端 price_yuchi 存的是折算后的鱼翅个数,
+    // 前端按 ÷10 还原成元展示。无 price 的双发副本 (odfpbc/rdfpbc) 走去重不会到这里;
+    // 但万一漏 (新协议变体) price_yuchi 为空时不渲染金额。
+    let priceTag = "";
+    if (e.price_yuchi != null) {
+      const yuan = e.price_yuchi / 10;
+      const shown = yuan >= 100 ? Math.round(yuan) : Number(yuan.toFixed(1));
+      priceTag = ` <span class="price">${shown} 元</span>`;
+    }
+    body = `<div class="body"><span class="nick">${escHtml(e.nickname) || "?"}</span> <b>${escHtml(e.gift_name)}</b>${priceTag}</div>`;
   } else {
     body = `<div class="body"><span class="nick">${escHtml(e.nickname) || "?"}</span>: ${escHtml(e.content)}</div>`;
   }
-  div.innerHTML = meta + body;
+  // 高能卡片包 swipe 容器: bg 在底, fg 浮于上, fg 可被 touch 拖拽
+  if (e.kind === "superchat") {
+    const swipeHint = e.done_at ? "↺ 撤销" : "✓ 已完成";
+    div.innerHTML = `<div class="swipe-bg">${swipeHint}</div><div class="swipe-fg">${meta}${body}</div>`;
+  } else {
+    div.innerHTML = meta + body;
+  }
   return div;
 }
 
@@ -372,6 +563,7 @@ function renderEvent(e) {
 const HASH_TO_TAB = {"": "gift", "/": "gift", "/high": "high", "/chat": "chat", "/history": "history"};
 function applyTab() {
   const tab = HASH_TO_TAB[location.hash.slice(1) || "/"] || "gift";
+  document.body.dataset.tab = tab;  // PC 端 ≥1024px 用此属性触发"礼物 + 高能"双栏 CSS
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + tab));
   document.querySelectorAll("nav.tabs a").forEach(a => a.classList.toggle("active", a.dataset.tab === tab));
   window.scrollTo(0, 0);
@@ -457,24 +649,89 @@ function refreshHighCount() {
   const pending = highStream.querySelectorAll('.ev.superchat:not([data-done="1"])').length;
   $("highCount").textContent = total ? `未响应 ${pending}/${total}` : "";
 }
-highStream.addEventListener("click", async ev => {
+async function toggleHighDone(card) {
+  if (!isAdmin) return;
+  const id = card.dataset.id;
+  const wasDone = card.dataset.done === "1";
+  if (wasDone) delete card.dataset.done; else card.dataset.done = "1";
+  // 同步 swipe-bg 文案 (撤销/已完成)
+  const bg = card.querySelector('.swipe-bg');
+  if (bg) bg.textContent = card.dataset.done === "1" ? "↺ 撤销" : "✓ 已完成";
+  refreshHighCount();
+  try {
+    const r = await fetch(`/api/event/${id}/done`, { method: "POST", headers: adminHeaders() });
+    if (!r.ok) throw new Error();
+  } catch {
+    if (wasDone) card.dataset.done = "1"; else delete card.dataset.done;
+    if (bg) bg.textContent = card.dataset.done === "1" ? "↺ 撤销" : "✓ 已完成";
+    refreshHighCount();
+  }
+}
+
+// 触屏只允许左划 toggle (防误触, 用户要求); 鼠标可点击 toggle。
+// 用 PointerEvent.pointerType 区分: click 在现代浏览器是 PointerEvent, ev.pointerType="mouse"/"touch"/"pen"。
+// 触屏的 click 是 ev.pointerType==="touch", 直接屏蔽。
+highStream.addEventListener("click", ev => {
+  if (ev.pointerType && ev.pointerType !== "mouse") return;
   if (!isAdmin) return;
   const card = ev.target.closest('.ev.superchat');
   if (!card) return;
   vibrate(30);
-  const id = card.dataset.id;
-  const wasDone = card.dataset.done === "1";
-  if (wasDone) delete card.dataset.done; else card.dataset.done = "1";
-  refreshHighCount();
-  try {
-    const headers = ADMIN_KEY ? {"x-admin-key": ADMIN_KEY} : {};
-    const r = await fetch(`/api/event/${id}/done`, { method: "POST", headers });
-    if (!r.ok) throw new Error();
-  } catch {
-    if (wasDone) card.dataset.done = "1"; else delete card.dataset.done;
-    refreshHighCount();
-  }
+  toggleHighDone(card);
 });
+
+// 左划标记: touchstart 锁定方向 (横/竖), 横向跟随手指; 释放时超阈值触发 toggle
+const SWIPE_THRESHOLD = 80;  // px; 跨过即视为有效左划
+let swipeState = null;
+highStream.addEventListener("touchstart", ev => {
+  if (!isAdmin) { swipeState = null; return; }
+  const card = ev.target.closest('.ev.superchat');
+  if (!card) return;
+  const fg = card.querySelector('.swipe-fg');
+  if (!fg) return;
+  // 滑动开始时根据当前状态写入提示文案 (toggleHighDone 也会同步, 这里是双保险)
+  const bg = card.querySelector('.swipe-bg');
+  if (bg) bg.textContent = card.dataset.done === "1" ? "↺ 撤销" : "✓ 已完成";
+  const t = ev.touches[0];
+  swipeState = { card, fg, startX: t.clientX, startY: t.clientY, locked: null, triggered: false };
+}, {passive: true});
+
+highStream.addEventListener("touchmove", ev => {
+  if (!swipeState) return;
+  const t = ev.touches[0];
+  const dx = t.clientX - swipeState.startX;
+  const dy = t.clientY - swipeState.startY;
+  if (swipeState.locked == null) {
+    if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+    swipeState.locked = Math.abs(dx) > Math.abs(dy) ? "h" : "v";
+    if (swipeState.locked === "h") swipeState.card.classList.add("swiping");
+  }
+  if (swipeState.locked !== "h") return;
+  const offset = Math.min(0, Math.max(dx, -160));   // 限幅 -160 不让一直拖到天边
+  swipeState.fg.style.transform = `translateX(${offset}px)`;
+  // 跨过阈值时一次性触感, 提示用户已可松手
+  if (!swipeState.triggered && offset <= -SWIPE_THRESHOLD) {
+    swipeState.triggered = true;
+    vibrate(30);
+  } else if (swipeState.triggered && offset > -SWIPE_THRESHOLD) {
+    swipeState.triggered = false;
+  }
+}, {passive: true});
+
+highStream.addEventListener("touchend", () => {
+  if (!swipeState) return;
+  const { card, fg, triggered } = swipeState;
+  card.classList.remove("swiping");
+  fg.style.transform = "";   // 回弹 (CSS transition 接管)
+  if (triggered) toggleHighDone(card);
+  swipeState = null;
+}, {passive: true});
+highStream.addEventListener("touchcancel", () => {
+  if (!swipeState) return;
+  swipeState.card.classList.remove("swiping");
+  swipeState.fg.style.transform = "";
+  swipeState = null;
+}, {passive: true});
 
 // ----------- 弹幕 Tab -----------
 const chatStream = $("chatStream");
@@ -595,6 +852,21 @@ function connect() {
       const ls = $("liveStatus"); ls.style.display = "";
       ls.textContent = e.show_status === 1 ? "直播中" : "未开播";
       ls.className = "pill " + (e.show_status === 1 ? "live" : "offline");
+      // 主播名 + 头像 (只在拿到非空值时更新, 避免覆盖已有显示)
+      if (e.owner_name) $("ownerName").textContent = e.owner_name;
+      if (e.avatar_url) {
+        const av = $("ownerAvatar");
+        // placeholder div 替换成 img; 已是 img 时只更新 src
+        if (av.tagName !== "IMG") {
+          const img = document.createElement("img");
+          img.className = "avatar"; img.id = "ownerAvatar"; img.alt = "";
+          img.referrerPolicy = "no-referrer";  // 斗鱼图床防盗链
+          img.src = e.avatar_url;
+          av.replaceWith(img);
+        } else if (av.src !== e.avatar_url) {
+          av.src = e.avatar_url;
+        }
+      }
       return;
     }
     if (e.kind === "vip_info") {
@@ -646,10 +918,21 @@ function connect() {
 $("giftThreshold").value = PREF.gift_threshold;
 $("giftThreshold").onchange = e => { PREF.gift_threshold = parseFloat(e.target.value) || 0; onThresholdChange(); };
 $("histDate").value = new Date().toISOString().split('T')[0];
+// 高能筛选器仅在选了 kind=superchat 时显示
+$("histKind").onchange = () => {
+  $("highFilters").style.display = $("histKind").value === "superchat" ? "" : "none";
+};
 $("histLoad").onclick = async () => {
   const since = new Date($("histDate").value + "T04:00:00").getTime();
   const params = new URLSearchParams({since_ms: since, until_ms: since+86400000, limit:500});
-  if ($("histKind").value) params.set("kind", $("histKind").value);
+  const kind = $("histKind").value;
+  if (kind) params.set("kind", kind);
+  if (kind === "superchat") {
+    const done = $("histDone").value;
+    if (done && done !== "all") params.set("done", done);
+    const q = $("histQ").value.trim();
+    if (q) params.set("q", q);
+  }
   const rows = await fetch("/api/history?" + params).then(r => r.json());
   const f = $("histFeed"); f.innerHTML = "";
   if (!rows.length) f.innerHTML = '<div class="empty">无数据</div>';
@@ -657,8 +940,21 @@ $("histLoad").onclick = async () => {
   $("histSummary").textContent = `查询到 ${rows.length} 条`;
 };
 $("histExport").onclick = () => {
-  location.href = `/api/export.csv?date=${$("histDate").value}&kind=${$("histKind").value}&key=${ADMIN_KEY}`;
+  // 导出走 GET 重定向, 必须把 key 拼到 URL (后端 _require_admin 也接受 ?key= 形式)
+  location.href = `/api/export.csv?date=${$("histDate").value}&kind=${$("histKind").value}&key=${encodeURIComponent(getAdminKey())}`;
 };
+$("loginBtn").onclick = showLoginModal;
+$("logoutBtn").onclick = doLogout;
+$("loginCancel").onclick = hideLoginModal;
+$("loginSubmit").onclick = submitLogin;
+$("loginPw").addEventListener("keydown", e => {
+  if (e.key === "Enter") { e.preventDefault(); submitLogin(); }
+  else if (e.key === "Escape") hideLoginModal();
+});
+// 点击蒙版 (非卡片本身) 关闭
+$("loginModal").addEventListener("click", e => {
+  if (e.target === e.currentTarget) hideLoginModal();
+});
 </script>
 </body>
 </html>
