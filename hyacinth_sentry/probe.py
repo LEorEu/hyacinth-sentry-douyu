@@ -1,5 +1,5 @@
 """One-shot probe: connect, login, join, dump every message body for ~25s.
-Run with:  python -m douyu_live.scripts.probe 12740109
+Run with:  python -m hyacinth_sentry.probe 12740109
 """
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import asyncio
 import sys
 from collections import Counter
 
-from douyu_live import protocol as proto
+from . import protocol as proto
 
 HOST = "danmuproxy.douyu.com"
 PORT = 8601

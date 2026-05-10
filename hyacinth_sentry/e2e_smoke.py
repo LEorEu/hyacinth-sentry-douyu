@@ -2,7 +2,7 @@
 let the real collector connect to room 60937 for ~20s, then assert we got
 chat (and possibly gift) events flowing through both DB write + WS broadcast.
 
-Run:  python -m douyu_live.e2e_smoke
+Run:  python -m hyacinth_sentry.e2e_smoke
 """
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ db_fd, db_path = tempfile.mkstemp(suffix=".db", prefix="douyu_e2e_")
 os.close(db_fd)
 os.environ["DOUYU_DB"] = db_path
 
-from douyu_live import server as srv  # noqa: E402
+from hyacinth_sentry import server as srv  # noqa: E402
 
 RECEIVED: list[dict] = []
 
@@ -48,7 +48,7 @@ async def main() -> None:
         print("  GIFT:", {k: v for k, v in e.items() if k in ("gift_id","gift_name","count","price_yuchi","nickname")})
 
     # query DB to confirm only non-chat is persisted
-    from douyu_live.db import Store
+    from hyacinth_sentry.db import Store
     s = Store(db_path)
     rows = s.query(room_id=int(os.environ["DOUYU_ROOM_ID"]), limit=500)
     by_kind: dict[str, int] = {}

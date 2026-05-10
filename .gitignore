@@ -11,3 +11,6 @@ diag.log
 # 环境
 .venv/
 .env
+
+# 本地设计文档
+PRD.md

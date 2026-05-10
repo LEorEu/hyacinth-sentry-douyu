@@ -4,7 +4,7 @@
   sniff/<room>_interesting.log — only unknown / rare types (i.e. NOT in NOISE)
 
 Usage:
-  python -m douyu_live.sniff 12740109
+  python -m hyacinth_sentry.sniff 12740109
   # ...let it run, watch the live in browser, note local time when the
   # blue 'SuperChat' card appears, then look at *_interesting.log around
   # that time to find the message type.

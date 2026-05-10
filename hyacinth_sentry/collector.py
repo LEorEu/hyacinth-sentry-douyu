@@ -14,7 +14,7 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Awaitable, Callable, Dict
 
-from . import protocol as proto
+from . import PROJECT_DIR, protocol as proto
 
 log = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ _DEDUP_WINDOW_MS = 5000
 _DEDUP_LRU_CAP = 256
 
 # 未识别 type 的 body 写到此文件供后续分析；每个 type 最多 _DIAG_SAMPLES 条样本
-_DIAG_LOG_PATH = Path(__file__).parent / "diag.log"
+_DIAG_LOG_PATH = PROJECT_DIR / "diag.log"
 _DIAG_SAMPLES = 5
 
 # Douyu splits chat across multiple "groups" on busy rooms; joining several

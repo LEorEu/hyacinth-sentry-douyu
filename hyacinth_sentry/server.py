@@ -17,6 +17,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Query, WebSocket, W
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
+from . import PROJECT_DIR
 from .collector import Collector
 from .db import Store
 from .gifts import fetch_gift_catalog, fetch_pandora_catalog
@@ -25,7 +26,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 log = logging.getLogger(__name__)
 
 ROOM_ID = int(os.environ.get("DOUYU_ROOM_ID", "0"))
-DB_PATH = os.environ.get("DOUYU_DB", str(Path(__file__).parent / "events.db"))
+DB_PATH = os.environ.get("DOUYU_DB", str(PROJECT_DIR / "events.db"))
 # 主播登录密码: 部署到公网时通过环境变量 DOUYU_ADMIN_PASSWORD 注入真实密码,
 # 不设则 fallback 到 "admin" (本地单机用方便)。源码不存真密码,git pull 不冲突。
 ADMIN_PASSWORD = os.environ.get("DOUYU_ADMIN_PASSWORD", "admin")

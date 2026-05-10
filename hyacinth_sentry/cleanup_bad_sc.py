@@ -9,7 +9,7 @@ Real high-energy rows have raw starting with 'vrid@=' (followed by btype/...
 /type@=comm_chatmsg/...) and a non-null price_yuchi, so they survive.
 
 Backs up the DB before deleting. Run:
-  python -m douyu_live.cleanup_bad_sc
+  python -m hyacinth_sentry.cleanup_bad_sc
 """
 from __future__ import annotations
 
@@ -19,7 +19,9 @@ import sys
 import time
 from pathlib import Path
 
-DB = Path(__file__).parent / "events.db"
+from . import PROJECT_DIR
+
+DB = PROJECT_DIR / "events.db"
 BAK = DB.with_suffix(f".db.bak-{int(time.time())}")
 
 

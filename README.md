@@ -41,16 +41,18 @@
 
 ## 👀 截图
 
-> _截图位待补,先开播跑一下你就知道长啥样了 😄_
+![礼物与高能视图](./img/1.png)
+![弹幕与历史视图](./img/2.png)
 
 ---
 
 ## 🚀 部署 & 运行
 
-### 1. 装依赖
+### 1. 拉代码并安装依赖
 
 ```powershell
-cd douyu_live
+git clone https://github.com/LEorEu/hyacinth-sentry.git
+cd hyacinth-sentry
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
@@ -67,7 +69,7 @@ pip install -r requirements.txt
 
 ```powershell
 $env:DOUYU_ROOM_ID = "你的房间号"
-python -m uvicorn server:app --host 0.0.0.0 --port 3000
+python -m uvicorn hyacinth_sentry.server:app --host 0.0.0.0 --port 3000
 ```
 
 ### 4. 用起来
@@ -99,7 +101,7 @@ python -m uvicorn server:app --host 0.0.0.0 --port 3000
 - ⏳ 震动通知(`navigator.vibrate`,大礼物来了让你的手感觉到)
 - ⏸ 高能弹幕自动分类(点歌/任务,需要主播提供真实词表)
 
-详细的需求设计 / 协议踩坑 / 已知 bug,看 [PRD.md](./PRD.md)。
+设计笔记保留为本地私有文档,不再随仓库发布。
 
 ---
 

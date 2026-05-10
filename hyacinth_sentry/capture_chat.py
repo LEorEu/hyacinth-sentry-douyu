@@ -5,7 +5,7 @@ server — Douyu allows multiple TCP sessions per room, no conflict.
 
 Output: one JSON object per line: {ts, nn, uid, txt, col}.
 
-  python -m douyu_live.capture_chat <room_id> [--duration 300] [--out chat_sample.jsonl]
+  python -m hyacinth_sentry.capture_chat <room_id> [--duration 300] [--out chat_sample.jsonl]
 """
 from __future__ import annotations
 

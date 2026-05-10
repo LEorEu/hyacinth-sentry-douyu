@@ -13,7 +13,7 @@ Everything is dumped to:
   monitor_<rid>_<startms>.jsonl    one event per line
 
 Usage:
-  python -m douyu_live.playwright_monitor 12740109
+  python -m hyacinth_sentry.playwright_monitor 12740109
   # browse normally, watch the room, and when you see a SC card flash, look
   # in the JSONL for events near that time.
 
