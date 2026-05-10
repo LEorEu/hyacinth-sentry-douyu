@@ -452,6 +452,9 @@ function getTierColor(yuchi) {
 const PIN_TTL_MS = 30 * 60 * 1000;
 const PIN_PERMANENT = 100;
 const STREAM_MAX = 200;
+// 弹幕 dedup 上限 + TTL: 超过 500 条弹掉最老; 60s 内未再被触发的也被 sweep 清掉
+const DEDUP_MAX = 500;
+const DEDUP_TTL_MS = 60 * 1000;
 
 // ----------- admin -----------
 // 全站只有"未登录观众"和"已登录主播"两种角色; 默认密码 admin (后续做修改密码后台前临时硬编码)。
@@ -836,6 +839,24 @@ function pushHotBarrage(e) {
   hotItems.set(key, { el: div, ts: Date.now() });
   hotStream.insertBefore(div, hotStream.firstChild);
 }
+
+// 周期清扫: 60s 内没再被触发的弹幕/热梗自动消失 (匹配 UI 提示文案)
+function dedupSweep() {
+  const cutoff = Date.now() - DEDUP_TTL_MS;
+  for (const [key, info] of dedupChat) {
+    if (info.ts < cutoff) {
+      info.el.remove();
+      dedupChat.delete(key);
+    }
+  }
+  for (const [key, info] of hotItems) {
+    if (info.ts < cutoff) {
+      info.el.remove();
+      hotItems.delete(key);
+    }
+  }
+}
+setInterval(dedupSweep, 10 * 1000);
 
 $("addPinKw").onclick = () => {
   const v = $("newPinKw").value.trim();
