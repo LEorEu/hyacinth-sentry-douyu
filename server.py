@@ -197,7 +197,12 @@ async def _startup() -> None:
     collector.start()
     _betard_task = asyncio.create_task(_betard_loop(), name=f"betard-{ROOM_ID}")
     log.info("collector started for room %d, db=%s", ROOM_ID, DB_PATH)
-    log.info("admin password = %r (login required to toggle done / export CSV)", ADMIN_PASSWORD)
+    # 安全: 不把真密码打到日志, 只提示是否走了 env 注入
+    is_default = ADMIN_PASSWORD == "admin"
+    log.info(
+        "admin auth ready (login required to toggle done / export CSV); password source=%s",
+        "default 'admin' (CHANGE FOR PUBLIC DEPLOY)" if is_default else "DOUYU_ADMIN_PASSWORD env",
+    )
 
 
 @app.on_event("shutdown")
