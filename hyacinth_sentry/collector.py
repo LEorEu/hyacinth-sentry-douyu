@@ -79,6 +79,7 @@ _NOBLE_NAMES = {
 }
 
 OnEvent = Callable[[dict], Awaitable[None]]
+GiftCatalogRefresher = Callable[[], Awaitable[Dict[int, dict]]]
 
 # Diagnostic: types that show up every second and would spam the log if surfaced.
 # Anything NOT in this set and NOT in _KIND_MAP gets a one-shot INFO log on
@@ -120,16 +121,43 @@ class Collector:
         on_event: OnEvent,
         gift_catalog: Dict[int, dict] | None = None,
         pandora_catalog: Dict[int, dict] | None = None,
+        gift_catalog_refresher: GiftCatalogRefresher | None = None,
+        catalog_refresh_min_interval: float = 300.0,
     ):
         self.room_id = room_id
         self.on_event = on_event
         self.gift_catalog: Dict[int, dict] = gift_catalog or {}
         self.pandora_catalog: Dict[int, dict] = pandora_catalog or {}
+        self.gift_catalog_refresher = gift_catalog_refresher
+        self.catalog_refresh_min_interval = catalog_refresh_min_interval
+        self._last_catalog_refresh = 0.0
         self._stop = asyncio.Event()
         self._task: asyncio.Task | None = None
         self._unknown_counts: dict[str, int] = {}
         self._diag_fp = None
         self._dedup: "OrderedDict[tuple, int]" = OrderedDict()
+
+    def _gift_meta(self, gfid: int | None, pid: int | None) -> dict:
+        meta = self.gift_catalog.get(gfid) if gfid else None
+        if not meta and pid:
+            meta = self.gift_catalog.get(pid)
+        return meta or {}
+
+    async def _refresh_gift_catalog_if_needed(self) -> None:
+        if not self.gift_catalog_refresher:
+            return
+        now = time.monotonic()
+        if now - self._last_catalog_refresh < self.catalog_refresh_min_interval:
+            return
+        self._last_catalog_refresh = now
+        try:
+            catalog = await self.gift_catalog_refresher()
+        except Exception as e:
+            log.warning("gift catalog refresh failed: %s", e)
+            return
+        if catalog:
+            self.gift_catalog = catalog
+            log.info("refreshed gift catalog: %d gifts for room %d", len(catalog), self.room_id)
 
     def _is_duplicate(self, t: str, kv: dict, ts_ms: int) -> bool:
         """Suppress same-(group, uid) events within DEDUP_WINDOW_MS for known-noisy types."""
@@ -267,10 +295,10 @@ class Collector:
             count = _to_int(kv.get("gfcnt")) or 1
             # name resolution: gfn (in payload) > catalog[gfid|pid] > pandora[pid] > placeholder
             name = kv.get("gfn") or None
-            meta = self.gift_catalog.get(gfid) if gfid else None
-            if not meta and pid:
-                meta = self.gift_catalog.get(pid)
-            meta = meta or {}
+            meta = self._gift_meta(gfid, pid)
+            if not meta and (gfid or pid):
+                await self._refresh_gift_catalog_if_needed()
+                meta = self._gift_meta(gfid, pid)
             # 主 catalog 没收录但是乾坤袋抽中礼物 (from=2, pid 在奖品池中) - fallback 到 pandora
             pandora_meta = self.pandora_catalog.get(pid) if (pid and not meta) else None
             if not name:
