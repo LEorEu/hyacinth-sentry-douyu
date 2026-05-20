@@ -155,6 +155,20 @@
   .ev .nick { font-weight: 700; }
   .ev .body { font-size: 14px; line-height: 1.5; word-break: break-all; }
   
+  /* 浮动刷新按钮: 自动 WS 重连解决了 99% 的断线场景, 但仍留一个最稳的兜底。
+     固定右下角, 不挡 feed, 移动端友好。 */
+  .fab-reload {
+    position: fixed; right: 14px; bottom: 76px; z-index: 50;
+    width: 48px; height: 48px; border-radius: 50%; border: none;
+    background: rgba(0,0,0,0.55); color: #fff; font-size: 22px; line-height: 48px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+  .fab-reload:hover, .fab-reload:active { background: rgba(0,0,0,0.75); transform: scale(1.05); }
+  /* PC 桌面端往上挪一点不挡底部 tab bar (tab bar 移动端才显示) */
+  @media (min-width: 1024px) { .fab-reload { bottom: 16px; } }
+
   /* 颜色阶梯：由 JS 根据等效鱼翅 (含亲密度÷10折算) 注入 --item-color。
      subscription (钻粉/贵族) 也走同色阶梯, 钻粉一月 1580 鱼翅 → tier-4 深红边框。
      亲密度礼物的价格文字不再硬编码粉红, 改为跟随 tier 色 (20 亲密度 = 2 鱼翅 = tier-0)。 */
@@ -391,6 +405,8 @@
     </div>
   </div>
 </main>
+
+<button class="fab-reload" id="fabReload" title="刷新页面" aria-label="刷新页面">↻</button>
 
 <div class="modal-mask" id="loginModal" style="display:none">
   <div class="modal-card">
@@ -985,6 +1001,10 @@ function connect() {
     }
   };
 }
+
+// 浮动刷新按钮: 自动重连失败 / 状态混乱时最稳的逃生口。
+// 用 reload(false) 走浏览器缓存, 比硬刷新快, 静态资源没变时几乎瞬间完成。
+$("fabReload").onclick = () => location.reload();
 
 // 移动端切到后台→回到前台时主动检查连接。WS 在系统挂起时可能进入半死状态
 // (onclose 没 fire 或者退避计时器没赶上), 回前台靠这个钩子立即恢复。
