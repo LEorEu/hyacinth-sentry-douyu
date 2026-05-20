@@ -6,318 +6,1175 @@
 <title>Hyacinth Sentry - 风信子哨兵</title>
 <style>
   :root {
-    --primary: #818cf8; /* 风信子蓝 */
-    --primary-soft: rgba(129, 140, 248, 0.1);
-    --secondary: #a78bfa; /* 紫罗兰 */
-    --accent: #f472b6; /* 樱花粉 */
-    
-    /* 斗鱼阶梯色 */
-    --tier-0: #94a3b8; /* < 10: 淡色 */
-    --tier-1: #385fac; /* >= 10: 蓝色系 */
-    --tier-2: #d45954; /* >= 50: 红色系 */
-    --tier-3: #f9af1b; /* >= 300: 金色系 */
-    --tier-4: #991b1b; /* >= 1000: 深红 (顶级) */
+    /* 极致平滑美观的本地无损字体栈 */
+    --font-header: "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-body: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
 
-    --bg-page: #f8fafc;
-    --bg-card: #ffffff;
-    --text-main: #1e293b;
-    --text-dim: #64748b;
-    --border: #e2e8f0;
-    --radius: 12px;
-    --nav-h: 64px;
+    /* 「风信子与樱花之梦」专属温婉配色系统 */
+    --primary: #8b5cf6; /* 温柔紫罗兰 */
+    --primary-soft: rgba(139, 92, 246, 0.06);
+    --secondary: #a78bfa; /* 梦幻丁香 */
+    --accent: #fb7185; /* 樱花粉 */
+    
+    /* 礼物阶梯色 - 糖果马卡龙色系 */
+    --tier-0: #94a3b8; /* < 10: 珍珠银 */
+    --tier-1: #60a5fa; /* >= 10: 晴空蓝 */
+    --tier-2: #f472b6; /* >= 50: 蔷薇粉 */
+    --tier-3: #fbbf24; /* >= 300: 晨曦黄 */
+    --tier-4: #fb7185; /* >= 1000: 蜜桃红 */
+
+    /* 浅色温婉背景 */
+    --bg-page: linear-gradient(135deg, #fff6f6 0%, #f4f7fc 50%, #f6f3ff 100%);
+    --bg-card: rgba(255, 255, 255, 0.72);
+    --text-main: #333446;
+    --text-dim: #71738c;
+    --border: rgba(139, 92, 246, 0.08);
+    --border-hover: rgba(251, 113, 133, 0.18);
+    --shadow: 0 10px 30px rgba(139, 92, 246, 0.02);
+    --shadow-hover: 0 16px 40px rgba(251, 113, 133, 0.05);
+    --radius: 16px;
+    --nav-h: 68px;
   }
 
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg-page: #0f172a;
-      --bg-card: #1e293b;
-      --text-main: #f1f5f9;
-      --text-dim: #94a3b8;
-      --border: #334155;
+      /* 深色温婉背景 */
+      --bg-page: linear-gradient(135deg, #0d0a18 0%, #151025 100%);
+      --bg-card: rgba(26, 21, 41, 0.72);
+      --text-main: #ebdffc;
+      --text-dim: #9995b0;
+      --border: rgba(181, 141, 250, 0.12);
+      --border-hover: rgba(251, 113, 133, 0.25);
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+      --shadow-hover: 0 16px 48px rgba(251, 113, 133, 0.08);
       --tier-0: #64748b;
     }
   }
 
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  
   body {
-    font: 16px/1.5 "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+    font-family: var(--font-body);
     margin: 0; padding: 0;
     background: var(--bg-page); color: var(--text-main);
     overflow-x: hidden;
+    min-height: 100vh;
+    transition: background 0.3s ease;
   }
 
-  /* 顶部状态栏：解决移动端溢出 */
-  header {
-    padding: 10px 16px;
-    background: var(--bg-card); border-bottom: 1px solid var(--border);
-    display: flex; flex-direction: column; gap: 8px;
-    position: sticky; top: 0; z-index: 50;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
   }
-  /* grid 布局: 移动端 brand+auth 一行 / pills 一行; PC 端 brand|pills|auth 一行 */
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(251, 113, 133, 0.15);
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(251, 113, 133, 0.35);
+  }
+
+  /* 顶部毛玻璃状态栏 */
+  header {
+    padding: 12px 20px;
+    background: var(--bg-card); 
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    position: sticky; top: 0; z-index: 50;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.01);
+  }
+  
+  /* 默认 / 移动端 (<1024px)：grid 两行 — 第一行 brand + actions, 第二行整排 status pill */
   header .inner {
     display: grid;
+    max-width: 1280px; margin: 0 auto; width: 100%;
+    gap: 10px 8px;
     grid-template-columns: 1fr auto;
     grid-template-areas:
-      "brand auth"
-      "pills pills";
-    gap: 8px; align-items: center;
-    max-width: 1280px; margin: 0 auto; width: 100%;
+      "brand actions"
+      "status status";
+    align-items: center;
   }
+
   header .brand {
-    grid-area: brand; display: flex; align-items: center; gap: 8px; min-width: 0;
+    grid-area: brand;
+    display: flex; align-items: center; gap: 8px; min-width: 0;
   }
-  header .auth-actions { grid-area: auth; display: flex; gap: 6px; flex-shrink: 0; }
+
+  /* status-row: 移动端是独立第二行的 flex; 桌面端会切换到 display:contents 把子元素散到主轴 */
+  header .status-row {
+    grid-area: status;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    min-width: 0;
+  }
+
+  /* 右侧操作区：声音 + 登录/退出 */
+  header .actions {
+    grid-area: actions;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  
+  /* 头像与物理指示点容器 */
+  .avatar-container {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+    animation: float 4s ease-in-out infinite;
+  }
+
+  /* 风信子精灵浮动效果 — 幅度收紧, 避免和 pill 静态文字对比时视觉错位 */
+  @keyframes float {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-1.5px) scale(1.015); }
+  }
+
+  /* 呼吸发光粉色光环 (直播中时通过 JS 激活) */
+  .avatar-container.live::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border: 2px solid var(--accent);
+    border-radius: 50%;
+    animation: liveRingPulse 2s infinite ease-in-out;
+    pointer-events: none;
+    z-index: 1;
+  }
+  @keyframes liveRingPulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.12); opacity: 0.4; }
+    100% { transform: scale(1.2); opacity: 0; }
+  }
+
+  /* 物理连接状态指示微点 */
+  .avatar-container .status-dot {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #64748b; /* 默认灰色：连接中 */
+    border: 2px solid var(--bg-card);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    z-index: 5;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  .avatar-container .status-dot.ok {
+    background-color: #10b981; /* 在线：绿色 */
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+  }
+  .avatar-container .status-dot.bad {
+    background-color: #ef4444; /* 离线：红色 */
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.6);
+  }
+
   header .brand .avatar {
-    width: 32px; height: 32px; border-radius: 50%; object-fit: cover;
-    background: var(--bg-page); border: 1px solid var(--border); flex-shrink: 0;
+    width: 38px; height: 38px; border-radius: 50%; object-fit: cover;
+    background: var(--bg-page); border: 2px solid var(--border); flex-shrink: 0;
+    box-shadow: 0 2px 10px rgba(251, 113, 133, 0.1);
   }
+  
   header .brand .avatar.placeholder {
     display: flex; align-items: center; justify-content: center;
-    color: var(--text-dim); font-size: 16px;
+    color: var(--primary); font-size: 20px;
   }
+  
   header h1 {
-    font-size: 16px; margin: 0; font-weight: 700; color: var(--primary);
+    font-family: 'Outfit', sans-serif;
+    font-size: 18px; margin: 0; font-weight: 700;
+    line-height: 1.2;   /* 不继承 body 1.5; 否则视觉中心会比 pill 文字偏下 */
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
   }
 
-  header .status-pills { grid-area: pills; display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+  /* 顶部导航 - 电脑端 */
+  .desktop-tabs {
+    display: none;
+    gap: 6px;
+  }
+  .desktop-tabs a {
+    text-decoration: none;
+    color: var(--text-dim);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 6px 18px;
+    border-radius: 20px;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+  }
+  .desktop-tabs a:hover {
+    color: var(--accent);
+    background: rgba(251, 113, 133, 0.05);
+  }
+  .desktop-tabs a.active {
+    color: var(--accent);
+    background: rgba(251, 113, 133, 0.06);
+    border-color: rgba(251, 113, 133, 0.15);
+  }
+
   header .pill {
-    padding: 2px 8px; border-radius: 6px; background: var(--bg-page);
+    padding: 4px 12px; border-radius: 20px; background: var(--bg-page);
     font-size: 11px; white-space: nowrap; color: var(--text-dim); font-weight: 600;
     border: 1px solid var(--border);
+    transition: all 0.2s ease;
+    display: inline-flex; align-items: center; gap: 4px;
   }
-  header .pill.ok { border-color: #10b981; color: #10b981; }
-  header .pill.bad { border-color: #ef4444; color: #ef4444; }
-  header .pill.live { background: #ffe4e6; color: #e11d48; border-color: #fda4af; }
-  header .pill-btn {
-    padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 700;
-    background: var(--primary); color: #fff; border: none; cursor: pointer;
+  header .pill.offline { color: var(--text-dim); background: var(--bg-page); border-color: var(--border); }
+  header .pill.ok { border-color: rgba(16, 185, 129, 0.2); color: #10b981; background: rgba(16, 185, 129, 0.03); }
+  header .pill.bad { border-color: rgba(239, 68, 68, 0.2); color: #ef4444; background: rgba(239, 68, 68, 0.03); }
+  header .pill.live { background: rgba(251, 113, 133, 0.08); color: #f43f5e; border-color: rgba(251, 113, 133, 0.2); animation: breath 2s infinite ease-in-out; }
+
+  /* 圆形声音图标按钮 (桌面/移动统一只显示图标) */
+  header .audio-toggle {
+    width: 34px; height: 34px;
+    padding: 0;
+    border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 15px;
+    cursor: pointer;
+    background: var(--bg-page);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: none;
     flex-shrink: 0;
   }
-  header .pill-btn:active { transform: scale(0.95); }
+  header .audio-toggle:hover {
+    border-color: var(--accent);
+    background: rgba(251, 113, 133, 0.06);
+    transform: none;
+    box-shadow: 0 2px 8px rgba(251, 113, 133, 0.12);
+  }
+  header .audio-toggle.enabled {
+    border-color: rgba(16, 185, 129, 0.45);
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.08);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.15);
+  }
+  header .audio-toggle.enabled:hover {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.12);
+  }
+
+  /* 顶部 action 按钮 (登录/退出): 与历史查询按钮同款渐变 */
+  .header-action-btn {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    color: #fff;
+    border: none;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 7px 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(251, 113, 133, 0.15);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .header-action-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(251, 113, 133, 0.25);
+  }
+  .header-action-btn:active { transform: scale(0.96); }
+  .header-action-btn.btn-logout {
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    box-shadow: none;
+  }
+  .header-action-btn.btn-logout:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(251, 113, 133, 0.05);
+    box-shadow: none;
+  }
+  
+  @keyframes breath {
+    0%, 100% { opacity: 0.9; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.02); }
+  }
 
   header .badge-flash {
     width: 8px; height: 8px; border-radius: 50%; background: var(--accent); opacity: 0;
     transition: opacity .2s;
   }
-  header .badge-flash.on { opacity: 1; box-shadow: 0 0 8px var(--accent); animation: pulse 1s infinite; }
+  header .badge-flash.on { opacity: 1; box-shadow: 0 0 10px var(--accent); animation: pulse 1s infinite; }
   @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.3); } 100% { transform: scale(1); } }
 
   /* 底部导航 */
   nav.tabs {
-    height: var(--nav-h); background: var(--bg-card);
+    height: var(--nav-h); 
+    background: var(--bg-card);
     border-top: 1px solid var(--border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     position: fixed; bottom: 0; left: 0; right: 0;
     display: flex; justify-content: space-around; align-items: center;
     z-index: 100; padding-bottom: env(safe-area-inset-bottom);
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.02);
   }
   nav.tabs .nav-inner { display: flex; align-items: center; justify-content: space-around; max-width: 1280px; margin: 0 auto; width: 100%; height: 100%; }
   nav.tabs a {
     flex: 1; height: 100%; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 2px;
+    align-items: center; justify-content: center; gap: 4px;
     text-decoration: none; color: var(--text-dim); font-size: 11px; font-weight: 600;
+    transition: all 0.2s ease;
   }
-  nav.tabs a .ico { width: 22px; height: 22px; stroke: currentColor; }
-  nav.tabs a.active { color: var(--primary); background: var(--primary-soft); }
-  nav.tabs a.active .ico { stroke: var(--primary); }
+  nav.tabs a .ico { width: 22px; height: 22px; stroke: currentColor; transition: transform 0.2s ease; }
+  nav.tabs a.active { color: var(--accent); background: rgba(251, 113, 133, 0.05); }
+  nav.tabs a.active .ico { stroke: var(--accent); transform: translateY(-2px); }
   
+  /* 主体区域 */
   main {
-    padding: 12px 12px calc(var(--nav-h) + 20px + env(safe-area-inset-bottom));
-    max-width: 600px; margin: 0 auto;
+    padding: 16px 12px calc(var(--nav-h) + 24px + env(safe-area-inset-bottom));
+    max-width: 680px; margin: 0 auto;
   }
-  .view { display: none; animation: fadeIn 0.2s ease; }
+  .view { display: none; }
   .view.active { display: block; }
-  /* 桌面端把礼物 + 高能两栏并排; 移动端 display:contents 让子元素直接受 .view 控制 */
-  .dashboard-grid { display: contents; }
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-  .panel {
-    background: var(--bg-card); border-radius: var(--radius);
-    padding: 12px; margin-bottom: 12px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
-    border: 1px solid var(--border);
-  }
-  .panel h2 { font-size: 14px; margin: 0 0 10px; font-weight: 700; display: flex; justify-content: space-between; }
-  .panel h2 .hint { font-size: 11px; color: var(--text-dim); font-weight: normal; }
-
-  /* 列表项卡片 */
-  .feed { display: flex; flex-direction: column; gap: 8px; }
-  .ev {
-    padding: 10px 12px; border-radius: var(--radius);
-    background: var(--bg-card); border: 1px solid var(--border);
-    position: relative; transition: transform 0.1s;
-    flex-shrink: 0;   /* 防 .feed flex column 被 max-height 限制时压缩单条卡片 */
-  }
-  .ev .meta { font-size: 10px; color: var(--text-dim); margin-bottom: 4px; display: flex; gap: 8px; font-family: monospace; }
-  .ev .meta .id { opacity: 0.6; }
-  .ev .nick { font-weight: 700; }
-  .ev .body { font-size: 14px; line-height: 1.5; word-break: break-all; }
   
-  /* 浮动刷新按钮: 自动 WS 重连解决了 99% 的断线场景, 但仍留一个最稳的兜底。
-     固定右下角, 不挡 feed, 移动端友好。 */
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .dashboard-grid { display: contents; }
+
+  /* 统一卡片式面板 */
+  .panel {
+    background: var(--bg-card); 
+    border-radius: var(--radius);
+    padding: 16px; margin-bottom: 16px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  .panel:hover {
+    border-color: var(--border-hover);
+    box-shadow: var(--shadow-hover);
+  }
+  .panel h2 { 
+    font-family: 'Outfit', sans-serif;
+    font-size: 15px; margin: 0 0 14px; font-weight: 700; 
+    color: var(--text-main);
+    display: flex; justify-content: space-between; align-items: center; 
+  }
+  .panel h2 .hint { font-size: 11px; color: var(--text-dim); font-weight: normal; font-family: 'Inter', sans-serif; }
+
+  /* 事件动态馈送流 */
+  .feed { display: flex; flex-direction: column; gap: 10px; }
+  
+  /* 列表为空时的 CSS 动感占位插画 (解决界面太空问题) */
+  .feed:empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    border: 1.5px dashed rgba(139, 92, 246, 0.16);
+    border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.22);
+    min-height: 260px;
+    transition: all 0.3s ease;
+    animation: fadeIn 0.5s ease both;
+  }
+  @media (prefers-color-scheme: dark) {
+    .feed:empty {
+      background: rgba(26, 21, 41, 0.22);
+      border-color: rgba(181, 141, 250, 0.16);
+    }
+  }
+
+  .feed:empty::before {
+    font-size: 42px;
+    margin-bottom: 16px;
+    animation: floatBubble 3.5s ease-in-out infinite;
+    line-height: 1;
+    display: block;
+  }
+  
+  .feed:empty::after {
+    color: var(--text-dim);
+    font-size: 12.5px;
+    font-weight: 500;
+    line-height: 1.85;
+    text-align: center;
+    white-space: pre-wrap;
+    max-width: 250px;
+    display: block;
+  }
+
+  @keyframes floatBubble {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-8px) scale(1.06); }
+  }
+
+  #giftFeed:empty::before { content: "🌸"; }
+  #giftFeed:empty::after { content: "静候风信子开花...\A等待收到的第一份礼物，大额礼物会永久留在这里哦"; }
+
+  #highFeed:empty::before { content: "✨"; }
+  #highFeed:empty::after { content: "电波平静中...\A这里会帮主播敏锐捕捉观众的高能吐槽和打赏"; }
+
+  #chatStream:empty::before { content: "💬"; }
+  #chatStream:empty::after { content: "风信子林静悄悄\A弹幕流会自动流淌于此，去重合并让主播看得更轻松"; }
+
+  #hotStream:empty::before { content: "🫧"; }
+  #hotStream:empty::after { content: "热梗酝酿中...\A全站大家都在复读的有趣话梗会显示在这里"; }
+
+  #histFeed:empty::before { content: "📂"; }
+  #histFeed:empty::after { content: "这里空空如也\A选择上面的日期和类型，即可开启翻账查询之旅"; }
+
+  /* 事件卡片 */
+  .ev {
+    padding: 12px 14px; border-radius: var(--radius);
+    background: var(--bg-card); 
+    border: 1px solid var(--border);
+    position: relative; 
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    flex-shrink: 0;
+    animation: slideInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .ev:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-hover);
+    box-shadow: var(--shadow-hover);
+  }
+  
+  .ev .meta { 
+    font-size: 10px; color: var(--text-dim); margin-bottom: 6px; 
+    display: flex; gap: 8px; font-family: monospace; 
+  }
+  .ev .meta .id { opacity: 0.5; }
+  .ev .nick { font-weight: 700; color: var(--text-main); }
+  .ev .body { font-size: 14px; line-height: 1.55; word-break: break-all; color: var(--text-main); }
+  
+  /* 悬浮刷新按钮 */
   .fab-reload {
-    position: fixed; right: 14px; bottom: 76px; z-index: 50;
-    width: 48px; height: 48px; border-radius: 50%; border: none;
-    background: rgba(0,0,0,0.55); color: #fff; font-size: 22px; line-height: 48px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3); cursor: pointer;
+    position: fixed; right: 16px; bottom: 84px; z-index: 50;
+    width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--border);
+    background: var(--bg-card); color: var(--accent); font-size: 20px;
+    box-shadow: 0 4px 16px rgba(251, 113, 133, 0.15); cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    transition: transform 0.15s ease, background 0.15s ease;
+    backdrop-filter: blur(10px);
+    transition: all 0.2s ease;
   }
-  .fab-reload:hover, .fab-reload:active { background: rgba(0,0,0,0.75); transform: scale(1.05); }
-  /* PC 桌面端往上挪一点不挡底部 tab bar (tab bar 移动端才显示) */
-  @media (min-width: 1024px) { .fab-reload { bottom: 16px; } }
+  .fab-reload:hover, .fab-reload:active { 
+    background: rgba(251, 113, 133, 0.05); 
+    transform: scale(1.05) rotate(90deg); 
+  }
+  
+  @media (min-width: 1024px) { 
+    .fab-reload { bottom: 20px; } 
+  }
 
-  /* 颜色阶梯：由 JS 根据等效鱼翅 (含亲密度÷10折算) 注入 --item-color。
-     subscription (钻粉/贵族) 也走同色阶梯, 钻粉一月 1580 鱼翅 → tier-4 深红边框。
-     亲密度礼物的价格文字不再硬编码粉红, 改为跟随 tier 色 (20 亲密度 = 2 鱼翅 = tier-0)。 */
-  .ev.gift, .ev.superchat, .ev.subscription { border-left: 4px solid var(--item-color, var(--tier-0)); }
-  .ev.gift[data-perm="1"], .ev.subscription[data-perm="1"] { box-shadow: 0 0 0 1px var(--item-color, var(--tier-0)) inset; }
-  .ev .price { color: var(--item-color, var(--tier-0)); font-weight: 800; }
+  /* 礼物阶梯左侧条圆润呈现 */
+  .ev.gift, .ev.superchat, .ev.subscription { 
+    border-left: 4px solid var(--item-color, var(--tier-0)); 
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+  }
+  .ev.gift[data-perm="1"], .ev.subscription[data-perm="1"] { 
+    box-shadow: 0 0 0 1px var(--item-color, var(--tier-0)) inset, var(--shadow); 
+  }
+  
+  .ev.gift[style*="--item-color"], .ev.superchat[style*="--item-color"], .ev.subscription[style*="--item-color"] {
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.85) 0%, var(--bg-card) 100%);
+  }
+  @media (prefers-color-scheme: dark) {
+    .ev.gift[style*="--item-color"], .ev.superchat[style*="--item-color"], .ev.subscription[style*="--item-color"] {
+      background: linear-gradient(90deg, rgba(35, 28, 55, 0.85) 0%, var(--bg-card) 100%);
+    }
+  }
 
-  /* 高能卡片状态 */
-  .ev.superchat { overflow: hidden; padding: 0; }   /* swipe-fg 自带 padding, 容器去除 */
+  .ev .price { 
+    color: var(--item-color, var(--tier-0)); 
+    font-weight: 800; 
+    font-family: 'Outfit', sans-serif;
+    margin-left: 4px;
+  }
+
+  /* ==================== 针对高价大额礼物/高能的敏感性高亮与呼吸发光 (Tier 3 & Tier 4) ==================== */
+  /* Tier 3: 晨曦蜜金发光卡片 */
+  .ev.tier-3 {
+    border-color: rgba(251, 191, 36, 0.45) !important;
+    background: linear-gradient(90deg, rgba(251, 191, 36, 0.05) 0%, var(--bg-card) 100%) !important;
+    box-shadow: 0 4px 18px rgba(251, 191, 36, 0.06), var(--shadow) !important;
+  }
+  .ev.tier-3:hover {
+    border-color: rgba(251, 191, 36, 0.7) !important;
+    box-shadow: 0 8px 24px rgba(251, 191, 36, 0.12), var(--shadow-hover) !important;
+  }
+
+  /* Tier 4: 顶级耀眼蜜桃粉金呼吸发光卡片 (让大礼物在屏幕上排面拉满，主播绝对不会漏) */
+  .ev.tier-4 {
+    border-color: rgba(251, 113, 133, 0.5) !important;
+    background: linear-gradient(90deg, rgba(251, 113, 133, 0.07) 0%, var(--bg-card) 100%) !important;
+    box-shadow: 0 6px 22px rgba(251, 113, 133, 0.1), var(--shadow) !important;
+    animation: pulseGlow 3.5s infinite ease-in-out, slideInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .ev.tier-4:hover {
+    border-color: rgba(251, 113, 133, 0.8) !important;
+    box-shadow: 0 10px 30px rgba(251, 113, 133, 0.22), var(--shadow-hover) !important;
+  }
+
+  @keyframes pulseGlow {
+    0%, 100% { 
+      box-shadow: 0 6px 20px rgba(251, 113, 133, 0.08), var(--shadow); 
+      border-color: rgba(251, 113, 133, 0.45); 
+    }
+    50% { 
+      box-shadow: 0 12px 32px rgba(251, 113, 133, 0.18), var(--shadow); 
+      border-color: rgba(251, 113, 133, 0.8); 
+      transform: scale(1.005);
+    }
+  }
+
+  /* 皇冠与星星徽标字体增大 */
+  .price.tier-badge-crown, .price.tier-badge-sparkle {
+    font-size: 15px;
+    font-weight: 800;
+  }
+
+  /* 高能弹幕卡片 */
+  .ev.superchat { overflow: hidden; padding: 0; }
   .ev.superchat .swipe-bg {
-    position: absolute; inset: 0; background: #10b981; color: #fff;
+    position: absolute; inset: 0; 
+    background: linear-gradient(135deg, #fb7185 0%, #f43f5e 100%); 
+    color: #fff;
     display: flex; align-items: center; justify-content: flex-end;
-    padding: 0 16px; font-weight: 800; font-size: 14px;
-    opacity: 0; transition: opacity 0.15s;       /* 平时不可见, 滑动时才显 */
+    padding: 0 20px; font-weight: 800; font-size: 14px;
+    opacity: 0; transition: opacity 0.15s;
   }
-  .ev.superchat[data-done="1"] .swipe-bg { background: #6b7280; }
+  .ev.superchat[data-done="1"] .swipe-bg { 
+    background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%); 
+  }
   .ev.superchat.swiping .swipe-bg { opacity: 1; }
+  
   .ev.superchat .swipe-fg {
     position: relative; display: block; width: 100%;
     background: var(--bg-card);
-    padding: 10px 12px; transition: transform 0.2s ease; z-index: 1;
+    padding: 12px 14px; transition: transform 0.2s ease; z-index: 1;
   }
   .ev.superchat.swiping .swipe-fg { transition: none; }
-  /* 已完成态: 文本变灰 + 删除线; 不要再叠 ::after 的 ✓ 角标 (用户反馈太乱) */
-  .ev.superchat[data-done="1"] .swipe-fg { color: var(--text-dim); }
+  
+  .ev.superchat[data-done="1"] .swipe-fg { 
+    opacity: 0.6; 
+  }
   .ev.superchat[data-done="1"] .swipe-fg .body,
-  .ev.superchat[data-done="1"] .swipe-fg .body * { text-decoration: line-through; color: var(--text-dim); }
-  /* 仅 admin 时光标提示可点 / 可滑 */
-  body.admin .ev.superchat .swipe-fg { cursor: pointer; }
-
-  .ev.subscription { border-left: 4px solid #121786; }
-  .ev.subscription .price { color: #121786; }
-
-  /* 弹幕卡片 */
-  .ev.chat { padding: 4px 12px; border-left: 2px solid var(--border); }
-  .ev.chat[data-pin="1"] { border-left: 4px solid var(--accent); background: rgba(244, 114, 182, 0.05); }
-  .ev.chat .dup {
-    padding: 0 6px; border-radius: 10px; background: var(--primary); color: #fff;
-    font-size: 10px; margin-left: 4px; font-weight: 800;
+  .ev.superchat[data-done="1"] .swipe-fg .body * { 
+    text-decoration: line-through; 
+    color: var(--text-dim); 
   }
 
-  /* 通用 filters 行: 自动 wrap, 元素之间留 gap */
+  /* 高能标记响应按钮 */
+  .done-check-btn {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--primary-soft);
+    color: var(--primary);
+    border: 1px solid var(--border);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+    box-shadow: 0 2px 6px rgba(120, 123, 246, 0.05);
+  }
+  body.admin .done-check-btn {
+    display: flex;
+  }
+  .done-check-btn:hover {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+    transform: translateY(-50%) scale(1.1);
+  }
+  .ev.superchat[data-done="1"] .done-check-btn {
+    color: var(--text-dim);
+    background: var(--border);
+  }
+  .ev.superchat[data-done="1"] .done-check-btn:hover {
+    background: var(--text-dim);
+    color: var(--bg-card);
+  }
+
+  body.admin .ev.superchat .swipe-fg { cursor: pointer; }
+
+  .ev.subscription { border-left: 4px solid var(--primary); }
+  .ev.subscription .price { color: var(--primary); }
+
+  /* 弹幕卡片样式 */
+  .ev.chat { padding: 8px 14px; border-left: 3px solid var(--border); }
+  .ev.chat[data-pin="1"] { 
+    border-left: 4px solid var(--accent); 
+    background: rgba(251, 113, 133, 0.04); 
+    box-shadow: 0 0 12px rgba(251, 113, 133, 0.04) inset;
+  }
+  .ev.chat .dup {
+    padding: 1px 8px; border-radius: 12px; 
+    background: linear-gradient(135deg, var(--accent) 0%, var(--secondary) 100%); 
+    color: #fff;
+    font-size: 10px; margin-left: 6px; font-weight: 800;
+    font-family: 'Outfit', sans-serif;
+    box-shadow: 0 2px 6px rgba(251, 113, 133, 0.2);
+  }
+
+  /* 过滤工具条 */
   .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-  .filters + .filters { margin-top: 8px; }
+  .filters + .filters { margin-top: 10px; }
   #chatConfig .filters input { flex: 1; min-width: 150px; }
   #chatConfig .filters button { white-space: nowrap; }
 
+  /* 响应式媒体查询：平板与桌面大屏 */
   @media (min-width: 768px) {
-    header .inner {
-      grid-template-columns: auto 1fr auto;
-      grid-template-areas: "brand pills auth";
-      gap: 12px;
+    header {
+      padding: 14px 24px;
     }
-    header .status-pills { justify-content: flex-end; flex-wrap: nowrap; }
+    header .inner {
+      gap: 16px;
+    }
     nav.tabs a { flex: none; width: 110px; }
     main {
-      padding: 16px 20px calc(var(--nav-h) + 20px + env(safe-area-inset-bottom));
+      padding: 24px 24px calc(var(--nav-h) + 24px + env(safe-area-inset-bottom));
       max-width: 1280px;
     }
   }
-  /* 桌面端: 礼物 + 高能 双列并排; 进入 gift 或 high tab 都显示双栏 */
+
+  /* 桌面端：隐藏底部 Tab 栏，展示顶部导航，且大屏礼物与高能并排展示 */
   @media (min-width: 1024px) {
-    .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+    nav.tabs {
+      display: none; /* 隐藏底部导航 */
+    }
+    .desktop-tabs {
+      display: flex; /* 开启顶部导航 */
+      margin: 0 20px;
+    }
+
+    /* header 单行 flex 重排: 把 .status-row 透明化, 让 room/liveStatus 跟 brand 同侧,
+       vipCount/stats 跟 actions 同侧, 通过 order 精确控制顺序。
+       tabs 用 position:absolute 钉在 .inner 几何正中, 不受左右两侧自然宽度影响。 */
+    header .inner {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      grid-template-areas: none;
+      position: relative;
+    }
+    header .status-row { display: contents; }
+    header .brand { order: 1; flex-shrink: 0; }
+    header #room { order: 2; }
+    header #liveStatus { order: 3; }
+    /* 弹性 spacer 把右侧 vipCount/stats/actions 整体推到最右;
+       不依赖任何业务元素的显示状态 (#vipCount/#stats 默认 display:none) */
+    header .inner::before {
+      content: '';
+      order: 4;
+      flex: 1;
+    }
+    header .desktop-tabs {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      margin: 0;
+      flex: none;
+      z-index: 1;
+    }
+    header #vipCount { order: 5; }
+    header #stats { order: 6; }
+    header .actions { order: 7; flex-shrink: 0; }
+    main {
+      padding-bottom: 40px; /* 无需底部留空 */
+    }
+    .dashboard-grid { 
+      display: grid; 
+      grid-template-columns: 1fr 1fr; 
+      gap: 20px; 
+      align-items: start; 
+    }
     body[data-tab="gift"] .dashboard-grid > .view,
-    body[data-tab="high"] .dashboard-grid > .view { display: block !important; }
+    body[data-tab="high"] .dashboard-grid > .view { 
+      display: block !important; 
+    }
   }
 
   .admin-only { display: none !important; }
   body.admin .admin-only { display: block !important; }
-  .empty { padding: 40px; text-align: center; color: var(--text-dim); }
+  .empty { padding: 48px; text-align: center; color: var(--text-dim); font-size: 13px; }
   
+  /* 温和圆润的输入控件 */
   input, select, button {
-    border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px;
-    font-size: 14px; background: var(--bg-card); color: var(--text-main);
+    border: 1px solid var(--border); 
+    border-radius: 10px; 
+    padding: 8px 14px;
+    font-size: 13px; 
+    background: var(--bg-card); 
+    color: var(--text-main);
     outline: none;
+    transition: all 0.2s ease;
   }
-  button { background: var(--primary); color: white; border: none; font-weight: 700; cursor: pointer; }
-  button:active { transform: scale(0.95); opacity: 0.9; }
+  input:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.08);
+  }
+  button { 
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%); 
+    color: white; 
+    border: none; 
+    font-weight: 700; 
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(251, 113, 133, 0.1);
+  }
+  button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(251, 113, 133, 0.2);
+  }
+  button:active { transform: scale(0.96); opacity: 0.95; }
+  
   .pin-kw-tag {
-    background: var(--primary-soft); color: var(--primary); padding: 4px 10px;
-    border-radius: 100px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 4px;
+    background: rgba(251, 113, 133, 0.06); 
+    color: #f43f5e; 
+    padding: 4px 12px;
+    border-radius: 20px; font-size: 12px; font-weight: 600; 
+    display: flex; align-items: center; gap: 6px;
+    border: 1px solid rgba(251, 113, 133, 0.12);
   }
 
-  /* 弹幕配置区按钮: 暂停/开始 toggle + 清空 (统一矮按钮风格) */
   .btn-toolbar { display: flex; gap: 8px; align-items: center; }
   .btn-toolbar button {
-    padding: 4px 12px; font-size: 12px; font-weight: 700;
-    border-radius: 6px; border: none; cursor: pointer;
+    padding: 5px 14px; font-size: 12px; font-weight: 700;
+    border-radius: 8px; border: none; cursor: pointer;
   }
-  #chatPauseBtn[data-paused="0"] { background: #ef4444; color: #fff; }   /* 当前运行中 → 显"暂停" */
-  #chatPauseBtn[data-paused="1"] { background: #10b981; color: #fff; }   /* 当前已停 → 显"开始" */
-  #chatClear { background: var(--border); color: var(--text-dim); }
+  #chatPauseBtn[data-paused="0"] { background: linear-gradient(135deg, #fb7185 0%, #f43f5e 100%); color: #fff; }
+  #chatPauseBtn[data-paused="1"] { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; }
+  #chatClear { background: var(--bg-page); color: var(--text-dim); border: 1px solid var(--border); }
+  #chatClear:hover { background: rgba(251, 113, 133, 0.05); }
 
-  /* 登录 modal */
+  /* 登录模态框 */
   .modal-mask {
     position: fixed; inset: 0; z-index: 200;
-    background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(2px);
+    background: rgba(13, 11, 24, 0.35); 
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     display: flex; align-items: center; justify-content: center;
-    padding: 20px; animation: fadeIn 0.15s ease;
+    padding: 20px; animation: fadeIn 0.2s ease;
   }
   .modal-card {
     background: var(--bg-card); color: var(--text-main);
-    border-radius: var(--radius); padding: 24px;
+    border-radius: 20px; padding: 24px;
     width: 100%; max-width: 360px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
     border: 1px solid var(--border);
-    animation: modalIn 0.2s ease;
+    animation: modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
   @keyframes modalIn {
-    from { opacity: 0; transform: translateY(-12px) scale(0.96); }
+    from { opacity: 0; transform: translateY(-16px) scale(0.96); }
     to   { opacity: 1; transform: none; }
   }
-  .modal-card h3 { margin: 0 0 4px; font-size: 18px; font-weight: 700; }
-  .modal-card .modal-sub { color: var(--text-dim); font-size: 13px; margin-bottom: 16px; }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .modal-card h3 { margin: 0 0 6px; font-size: 18px; font-weight: 700; font-family: 'Outfit', sans-serif; }
+  .modal-card .modal-sub { color: var(--text-dim); font-size: 13px; margin-bottom: 20px; }
   .modal-card input {
-    width: 100%; padding: 10px 12px; font-size: 16px;
-    border-radius: 8px; border: 1px solid var(--border);
+    width: 100%; padding: 12px; font-size: 15px;
+    border-radius: 10px; border: 1px solid var(--border);
     background: var(--bg-page); color: var(--text-main);
   }
-  .modal-card input:focus { border-color: var(--primary); outline: none; }
-  .modal-err { color: #ef4444; font-size: 13px; margin-top: 8px; min-height: 18px; }
-  .modal-actions { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
-  .modal-actions button { padding: 8px 16px; border-radius: 8px; font-size: 14px; }
+  .modal-err { color: #f43f5e; font-size: 13px; margin-top: 8px; min-height: 18px; font-weight: 500; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+  .modal-actions button { padding: 8px 20px; border-radius: 10px; font-size: 13px; }
   .btn-secondary { background: transparent !important; color: var(--text-dim) !important; border: 1px solid var(--border) !important; }
+  .btn-secondary:hover { background: rgba(251, 113, 133, 0.05) !important; }
+
+  /* ==================== 「风信子温馨电台」与「至臻大礼播报」精美样式 ==================== */
+  /* 主播温馨电台 */
+  .welcome-panel {
+    display: none; /* 默认移动端隐藏，释放关键空间 */
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    transition: all 0.3s ease;
+  }
+  @media (min-width: 1024px) {
+    .welcome-panel {
+      display: block; /* 桌面端激活显示，通过声明顺序覆盖 mobile display:none */
+    }
+  }
+  .welcome-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .welcome-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+    flex: 1 1 300px;
+  }
+  
+  /* 互动风铃秋千效果 */
+  .interactive-chime {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--primary-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.08);
+  }
+  .interactive-chime:hover {
+    transform: scale(1.08);
+    background: rgba(251, 113, 133, 0.08);
+    border-color: rgba(251, 113, 133, 0.25);
+    box-shadow: 0 6px 16px rgba(251, 113, 133, 0.15);
+  }
+  /* 自定义矢量风铃样式与动画 */
+  .chime-svg {
+    width: 28px;
+    height: 28px;
+    display: inline-block;
+    vertical-align: middle;
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+  .chime-emoji {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    transform-origin: top center;
+    animation: swing 4s ease-in-out infinite;
+    transition: transform 0.2s ease;
+  }
+  .interactive-chime:hover .chime-svg {
+    animation: swing-fast 0.6s ease-in-out infinite alternate;
+  }
+  
+  /* 头像占位符 SVG 样式 */
+  .avatar.placeholder .chime-svg,
+  .spotlight-avatar-placeholder .chime-svg {
+    width: 24px;
+    height: 24px;
+    animation: swing 4s ease-in-out infinite;
+  }
+  
+  @keyframes swing {
+    0%, 100% { transform: rotate(0deg); }
+    20% { transform: rotate(8deg); }
+    40% { transform: rotate(-6deg); }
+    60% { transform: rotate(4deg); }
+    80% { transform: rotate(-3deg); }
+  }
+  @keyframes swing-fast {
+    0% { transform: rotate(-15deg); }
+    100% { transform: rotate(15deg); }
+  }
+  
+  .welcome-text {
+    min-width: 0;
+  }
+  .welcome-text h3 {
+    margin: 0 0 4px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-main);
+  }
+  .welcome-text p {
+    margin: 0;
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .welcome-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    flex-shrink: 0;
+    text-align: right;
+  }
+  .clock-display {
+    font-family: 'Outfit', sans-serif;
+    font-size: 18px;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: 0.5px;
+  }
+  .guard-timer {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-weight: 600;
+    margin-top: 2px;
+  }
+
+  /* 璀璨至臻大礼播报横幅 */
+  .spotlight-banner {
+    position: fixed;
+    top: -120px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 32px);
+    max-width: 440px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 246, 246, 0.96) 100%);
+    border: 1.5px solid rgba(251, 191, 36, 0.5);
+    box-shadow: 0 20px 40px rgba(139, 92, 246, 0.08), 0 0 20px rgba(251, 191, 36, 0.15);
+    border-radius: 20px;
+    padding: 12px 18px;
+    z-index: 1000;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.2);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    overflow: hidden;
+  }
+  @media (prefers-color-scheme: dark) {
+    .spotlight-banner {
+      background: linear-gradient(135deg, rgba(26, 21, 41, 0.96) 0%, rgba(35, 25, 45, 0.96) 100%);
+      border-color: rgba(251, 191, 36, 0.35);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 24px rgba(251, 191, 36, 0.1);
+    }
+  }
+  .spotlight-banner.active {
+    top: 20px;
+  }
+  .spotlight-avatar-container {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--primary-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid var(--border);
+    flex-shrink: 0;
+  }
+  .spotlight-avatar-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    animation: float 3s ease-in-out infinite;
+  }
+  .spotlight-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .spotlight-body {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text-main);
+    line-height: 1.4;
+  }
+  .spotlight-body span.highlight {
+    background: linear-gradient(135deg, #d97706 0%, #db2777 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 800;
+  }
+  @media (prefers-color-scheme: dark) {
+    .spotlight-body span.highlight {
+      background: linear-gradient(135deg, #fbbf24 0%, #f472b6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+  }
+  
+  /* 闪烁扫光 */
+  .spotlight-banner::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -150%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.3) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    transform: skewX(-25deg);
+  }
+  .spotlight-banner.active::before {
+    animation: shine 2.5s infinite ease-in-out;
+  }
 </style>
 </head>
 <body>
+<!-- 璀璨至臻大礼播报横幅 -->
+<div id="spotlightBanner" class="spotlight-banner">
+  <div class="spotlight-avatar-container">
+    <div class="spotlight-avatar-placeholder" id="spotlightAvatarPlaceholder">
+      <svg class="chime-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="50" y1="10" x2="50" y2="30" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+        <path d="M30 48 C30 35, 70 35, 70 48 C70 52, 66 55, 66 56 C62 57, 38 57, 34 56 C34 55, 30 52, 30 48 Z" fill="url(#chimeGradBanner)" stroke="var(--primary)" stroke-width="2" />
+        <circle cx="50" cy="58" r="4.5" fill="var(--accent)" />
+        <line x1="50" y1="58" x2="50" y2="72" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+        <rect x="46" y="72" width="8" height="20" rx="2" fill="url(#tanzakuGradBanner)" stroke="var(--accent)" stroke-width="1" />
+        <defs>
+          <linearGradient id="chimeGradBanner" x1="30" y1="35" x2="70" y2="56" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="rgba(139, 92, 246, 0.5)" />
+            <stop offset="100%" stop-color="rgba(251, 113, 133, 0.4)" />
+          </linearGradient>
+          <linearGradient id="tanzakuGradBanner" x1="46" y1="72" x2="54" y2="92" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="rgba(251, 113, 133, 0.9)" />
+            <stop offset="100%" stop-color="rgba(167, 139, 250, 0.9)" />
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+  </div>
+  <div class="spotlight-info">
+    <div class="spotlight-body" id="spotlightText">感谢 <span class="highlight">风信子</span> 的支持！</div>
+  </div>
+</div>
+
 <header>
   <div class="inner">
     <div class="brand">
-      <div class="avatar placeholder" id="ownerAvatar">🪻</div>
+      <div class="avatar-container" id="avatarContainer" title="连接中...">
+        <div class="avatar placeholder" id="ownerAvatar">
+          <svg class="chime-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <line x1="50" y1="10" x2="50" y2="30" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+            <path d="M30 48 C30 35, 70 35, 70 48 C70 52, 66 55, 66 56 C62 57, 38 57, 34 56 C34 55, 30 52, 30 48 Z" fill="url(#chimeGradHeader)" stroke="var(--primary)" stroke-width="2" />
+            <circle cx="50" cy="58" r="4.5" fill="var(--accent)" />
+            <line x1="50" y1="58" x2="50" y2="72" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+            <rect x="46" y="72" width="8" height="20" rx="2" fill="url(#tanzakuGradHeader)" stroke="var(--accent)" stroke-width="1" />
+            <defs>
+              <linearGradient id="chimeGradHeader" x1="30" y1="35" x2="70" y2="56" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="rgba(139, 92, 246, 0.5)" />
+                <stop offset="100%" stop-color="rgba(251, 113, 133, 0.4)" />
+              </linearGradient>
+              <linearGradient id="tanzakuGradHeader" x1="46" y1="72" x2="54" y2="92" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="rgba(251, 113, 133, 0.9)" />
+                <stop offset="100%" stop-color="rgba(167, 139, 250, 0.9)" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <span class="status-dot" id="statusDot"></span>
+      </div>
       <h1 id="ownerName">Hyacinth Sentry</h1>
       <div class="badge-flash" id="badgeFlash"></div>
     </div>
-    <div class="status-pills">
+    
+    <!-- 数据 pill 组：桌面端 display:contents 把子元素散到 brand / actions 两侧，
+         移动端则整体落到第二行独立展示 -->
+    <div class="status-row">
       <div class="pill" id="room">房间 -</div>
-      <div class="pill" id="status">连接中...</div>
-      <div class="pill offline" id="liveStatus" style="display:none">未开播</div>
+      <div class="pill offline" id="liveStatus">连接中...</div>
       <div class="pill" id="vipCount" style="display:none">- 贵宾</div>
       <div class="pill" id="stats" style="display:none">-</div>
     </div>
-    <div class="auth-actions">
-      <button class="pill-btn" id="loginBtn">登录</button>
-      <button class="pill-btn" id="logoutBtn" style="display:none">退出</button>
+
+    <!-- 桌面端顶部标签导航 -->
+    <div class="desktop-tabs">
+      <a data-tab="gift" href="#/">礼物</a>
+      <a data-tab="high" href="#/high">高能</a>
+      <a data-tab="chat" href="#/chat">弹幕</a>
+      <a data-tab="history" href="#/history">历史</a>
+    </div>
+
+    <!-- 右侧操作区：声音(图标圆钮) + 登录/退出(渐变 action 按钮) -->
+    <div class="actions">
+      <button class="audio-toggle" id="audioToggleBtn" title="开启/关闭音效" aria-label="开启/关闭音效">
+        <span class="audio-ico">🔇</span>
+      </button>
+      <button class="header-action-btn" id="loginBtn" title="登录进入管理模式">登录</button>
+      <button class="header-action-btn btn-logout" id="logoutBtn" style="display:none" title="退出登录">退出</button>
     </div>
   </div>
 </header>
 
 <main>
+  <!-- 主播温馨电台 / 欢迎面板 -->
+  <div class="panel welcome-panel" id="welcomePanel">
+    <div class="welcome-inner">
+      <div class="welcome-left">
+        <div class="interactive-chime" id="chimeWidget" title="敲一下风铃 🔔">
+          <span class="chime-emoji" id="chimeEmoji">
+            <svg class="chime-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <line x1="50" y1="10" x2="50" y2="30" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+              <path d="M30 48 C30 35, 70 35, 70 48 C70 52, 66 55, 66 56 C62 57, 38 57, 34 56 C34 55, 30 52, 30 48 Z" fill="url(#chimeGradWidget)" stroke="var(--primary)" stroke-width="2" />
+              <circle cx="50" cy="58" r="4.5" fill="var(--accent)" />
+              <line x1="50" y1="58" x2="50" y2="72" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+              <rect x="46" y="72" width="8" height="20" rx="2" fill="url(#tanzakuGradWidget)" stroke="var(--accent)" stroke-width="1" />
+              <defs>
+                <linearGradient id="chimeGradWidget" x1="30" y1="35" x2="70" y2="56" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="rgba(139, 92, 246, 0.5)" />
+                  <stop offset="100%" stop-color="rgba(251, 113, 133, 0.4)" />
+                </linearGradient>
+                <linearGradient id="tanzakuGradWidget" x1="46" y1="72" x2="54" y2="92" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="rgba(251, 113, 133, 0.9)" />
+                  <stop offset="100%" stop-color="rgba(167, 139, 250, 0.9)" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </span>
+        </div>
+        <div class="welcome-text">
+          <h3 id="welcomeGreeting">你好，主播！</h3>
+          <p id="welcomeQuote">风信子默默守护着你的每一个高光时刻...</p>
+        </div>
+      </div>
+      <div class="welcome-right">
+        <div class="clock-display" id="clockDisplay">--:--:--</div>
+        <div class="guard-timer" id="guardTimer">已持续守护 0 分钟</div>
+      </div>
+    </div>
+  </div>
+
   <!-- 礼物 + 高能 (PC 端 ≥1024px 双栏并列) -->
   <div class="dashboard-grid">
     <div class="view" id="view-gift">
@@ -389,9 +1246,7 @@
         </select>
         <input id="histQ" placeholder="关键词搜索 (内容/昵称)" style="flex:1">
       </div>
-      <!-- 礼物筛选: kind=gift 或全部 时展开。"0 价值礼物" 指 price_yuchi 和 intimacy 都
-           NULL 的行 (陪伴印章/粉丝荧光棒/钻粉荧光棒/星光棒等粉丝团连刷物), 这些虽然在 DB
-           里, 但价值未知不影响主播翻账。默认勾上去屏蔽。 -->
+      <!-- 礼物筛选: kind=gift 或全部 时展开 -->
       <div class="filters" id="giftFilters">
         <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:14px">
           <input type="checkbox" id="histHideZeroValue" checked> 隐藏荧光棒类型礼物
@@ -455,8 +1310,238 @@
     </a>
   </div>
 </nav>
-
 <script>
+// ----------- 物理合成水晶风铃 & 璀璨星光播报 -----------
+// 声音开启状态控制 (默认静音，以防止直播或首次打开时造成突兀打扰)
+let audioEnabled = false;
+
+// 物理连接与直播状态显示控制
+let currentLiveStatus = false;
+function updateAvatarStatus(isConnected, isLive) {
+  const container = document.getElementById("avatarContainer");
+  const dot = document.getElementById("statusDot");
+  if (!container || !dot) return;
+  
+  // 更新连接状态点样式与悬浮提示
+  if (isConnected) {
+    dot.className = "status-dot ok";
+    dot.title = "网络连接：在线";
+  } else {
+    dot.className = "status-dot bad";
+    dot.title = "网络连接：离线，重连中...";
+  }
+  
+  // 更新直播状态光环与容器标题
+  if (isLive) {
+    container.classList.add("live");
+    container.title = `风信子哨兵 (${isConnected ? '在线' : '离线'} · 直播中)`;
+  } else {
+    container.classList.remove("live");
+    container.title = `风信子哨兵 (${isConnected ? '在线' : '离线'} · 未开播)`;
+  }
+}// 1. Web Audio API 水晶风铃合成器 (纯本地代码实时物理模拟，无需下载任何音频文件)
+function playWindChime(tier, force = false) {
+  if (!audioEnabled && !force) return;
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    if (ctx.state === 'suspended') {
+      // 浏览器安全策略：首次加载需用户有点击等动作后才能 resume 音频播放
+      return;
+    }
+    const now = ctx.currentTime;
+    
+    // 根据礼物段位选择风铃级联和弦频率
+    let freqs = [523.25, 659.25, 783.99]; // Tier 3: C5, E5, G5 明亮大三和弦
+    if (tier === 4) {
+      freqs = [523.25, 659.25, 783.99, 1046.50, 1318.51]; // Tier 4: C5, E5, G5, C6, E6 超级华丽冠冕五弦级联
+    } else if (tier === 'superchat') {
+      freqs = [587.33, 880.00]; // Superchat: D5, A5 清亮纯五度风铃提醒
+    } else if (tier === 'click') {
+      // 随机和弦，营造极佳的解压打击感
+      const randomBase = [523.25, 587.33, 659.25, 698.46, 783.99, 880.00, 987.77];
+      const root = randomBase[Math.floor(Math.random() * randomBase.length)];
+      freqs = [root, root * 1.25, root * 1.5];
+    }
+
+    freqs.forEach((f, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(f, now + i * 0.08); // 柔顺的琶音级联延迟，极为逼真
+      
+      // 真实的声学指数衰减物理信封
+      gain.gain.setValueAtTime(0, now + i * 0.08);
+      gain.gain.linearRampToValueAtTime(tier === 4 ? 0.12 : 0.08, now + i * 0.08 + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.08 + 2.5); // 优雅的 2.5s 余音环绕
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.start(now + i * 0.08);
+      osc.stop(now + i * 0.08 + 3.0);
+    });
+  } catch (err) {
+    console.warn("AudioContext active failed:", err);
+  }
+}
+
+// 2. 璀璨至臻播报横幅管理逻辑
+const spotlightQueue = [];
+let spotlightActive = false;
+
+// spotlight 触发阈值:
+//   subscription — 全部 (钻粉/贵族都是直购大礼)
+//   superchat    — price_yuchi >= 30
+//   gift         — effective_yuchi*count >= 100 (亲密度礼物按 intimacy/10 折算)
+function triggerSpotlight(e) {
+  const cnt = e.count || 1;
+  const tierValue = effectiveYuchiOf(e) * cnt;
+
+  let isSpecial = false;
+  let bodyHtml = "";
+  let soundType = null;
+
+  if (e.kind === "subscription") {
+    isSpecial = true;
+    bodyHtml = `感谢 <span class="highlight">${escHtml(e.nickname)}</span> 成为 <span class="highlight">${escHtml(e.gift_name)}</span>！`;
+    soundType = 4;
+  } else if (e.kind === "superchat") {
+    const yuchi = e.price_yuchi != null ? (e.price_yuchi * cnt) : 0;
+    if (yuchi >= 30) {
+      isSpecial = true;
+      bodyHtml = `<span class="highlight">${escHtml(e.nickname)}</span>: "${escHtml(e.content)}"`;
+      soundType = 'superchat';
+    }
+  } else if (e.kind === "gift" && tierValue >= 100) {
+    isSpecial = true;
+    const yuchi = e.price_yuchi != null ? (e.price_yuchi * cnt) : 0;
+    const intimacy = (e.intimacy || 0) * cnt;
+    // 鱼翅价优先, 否则展示亲密度 (回眸之后等抽奖产物只有 intimacy 字段)
+    let priceStr = "";
+    if (yuchi > 0) priceStr = ` (鱼翅 ${Math.round(yuchi)})`;
+    else if (intimacy > 0) priceStr = ` (亲密度 ${intimacy})`;
+    bodyHtml = `感谢 <span class="highlight">${escHtml(e.nickname)}</span> 送出 <span class="highlight">${escHtml(e.gift_name)}</span> ×${cnt}${priceStr}！`;
+    soundType = tierValue >= 1000 ? 4 : 3;
+  }
+
+  if (!isSpecial) return;
+
+  spotlightQueue.push({ bodyHtml, soundType });
+  processSpotlightQueue();
+}
+
+function processSpotlightQueue() {
+  if (spotlightActive || spotlightQueue.length === 0) return;
+  spotlightActive = true;
+  
+  const item = spotlightQueue.shift();
+
+  // 更新横幅文案
+  $("spotlightText").innerHTML = item.bodyHtml;
+  
+  // 滑下横幅
+  const banner = $("spotlightBanner");
+  banner.classList.add("active");
+  
+  // 播送礼和弦风铃水晶音效
+  playWindChime(item.soundType);
+  
+  // 5秒后平滑缩回，重置状态并提取下一条
+  setTimeout(() => {
+    banner.classList.remove("active");
+    setTimeout(() => {
+      spotlightActive = false;
+      processSpotlightQueue();
+    }, 600);
+  }, 5000);
+}
+
+// 3. 「主播温馨电台」自适应更新管理
+const WELCOME_QUOTES = [
+  "风信子花开，默默守护着你的每一个闪闪发光的瞬间 ✨",
+  "今日小叮咛：记得每隔一小时活动一下，喝杯温水哦 🥤",
+  "风信子密语：做最真实的自己，就是屏幕前最美的风景 🌸",
+  "哨兵提醒：捕获到高额礼物或Superchat时，我会为你敲响清脆的水晶风铃 🔔",
+  "温柔的风，轻拂过风信子花海，今天也是元气满满的一天～",
+  "无论电波平静与否，哨兵永远是你最忠诚的第二屏幕小助手 ✨",
+  "今日主播推荐：和弹幕多笑一笑，快乐是会传染的哦 🫧"
+];
+
+let lastQuoteIdx = -1;
+function rotateWelcomeQuote() {
+  let nextIdx;
+  do {
+    nextIdx = Math.floor(Math.random() * WELCOME_QUOTES.length);
+  } while (nextIdx === lastQuoteIdx);
+  lastQuoteIdx = nextIdx;
+  $("welcomeQuote").textContent = WELCOME_QUOTES[nextIdx];
+}
+
+const sessionStartTime = Date.now();
+
+function updateWelcomePanel() {
+  // A. 流光时钟更新
+  const now = new Date();
+  const pad = n => String(n).padStart(2, "0");
+  $("clockDisplay").textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  
+  // B. 自适应温馨时段问候语
+  const hour = now.getHours();
+  let greeting = "你好，主播！";
+  if (hour >= 5 && hour < 12) {
+    greeting = "早上好，主播！晨光正好，今天也是温柔闪光的一天呢 ☕";
+  } else if (hour >= 12 && hour < 14) {
+    greeting = "午间好，主播！忙碌之余，记得喝杯温水、吃个香甜的午饭哦 🍱";
+  } else if (hour >= 14 && hour < 18) {
+    greeting = "下午好，主播！风信子开花啦，微风不燥，听一首歌放松一下吧 🎵";
+  } else if (hour >= 18 && hour < 23) {
+    greeting = "晚上好，主播！华灯初上，哨兵默默陪伴着你的每一个闪亮瞬间 🌙";
+  } else {
+    greeting = "深夜啦，主播！很晚了哦，辛苦啦，要多喝温水、注意保重身体哦 🥛";
+  }
+  $("welcomeGreeting").textContent = greeting;
+  
+  // C. 守护时长更新
+  const durationMin = Math.floor((Date.now() - sessionStartTime) / 60000);
+  $("guardTimer").textContent = `已持续守护 ${durationMin} 分钟`;
+}
+
+// 4. 风铃敲击互动控制
+function initChimeInteraction() {
+  const widget = $("chimeWidget");
+  const emoji = $("chimeEmoji");
+  
+  const ring = () => {
+    // 强制触发 swing-fast 震颤动效
+    emoji.style.animation = 'none';
+    emoji.offsetHeight; // Reflow
+    emoji.style.animation = 'swing-fast 0.6s ease-in-out infinite alternate';
+    
+    // 播放随机音高水晶铃音
+    playWindChime('click');
+    
+    // 1.2秒后恢复缓慢秋千摇摆
+    setTimeout(() => {
+      emoji.style.animation = 'swing 4s ease-in-out infinite';
+    }, 1200);
+  };
+  
+  widget.addEventListener("mouseenter", () => {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (AudioContext) {
+        const dummy = new AudioContext();
+        if (dummy.state === 'suspended') dummy.resume();
+      }
+    } catch {}
+  });
+  
+  widget.addEventListener("click", ring);
+}
+
 // ----------- helpers -----------
 const $ = id => document.getElementById(id);
 const fmtTs = ms => {
@@ -466,7 +1551,7 @@ const fmtTs = ms => {
 const escHtml = s => (s ?? "").replace(/[<>&]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
 const vibrate = ms => { if (navigator.vibrate) navigator.vibrate(ms); };
 
-// 根据鱼翅金额返回阶梯颜色变量
+// 根据等效鱼翅计算对应的阶梯颜色 CSS 变量
 function getTierColor(yuchi) {
   if (yuchi >= 1000) return "var(--tier-4)";
   if (yuchi >= 300) return "var(--tier-3)";
@@ -475,17 +1560,12 @@ function getTierColor(yuchi) {
   return "var(--tier-0)";
 }
 
-const PIN_TTL_MS = 30 * 60 * 1000;
-const PIN_PERMANENT = 100;
-const STREAM_MAX = 200;
-// 弹幕 dedup 上限 + TTL: 超过 500 条弹掉最老; 60s 内未再被触发的也被 sweep 清掉
+const PIN_PERMANENT = 100;   // total >= 此值的礼物永久钉顶
+const STREAM_MAX = 200;       // 普通礼物上限, 超出从末尾挤掉 (替代过期清扫)
 const DEDUP_MAX = 500;
 const DEDUP_TTL_MS = 60 * 1000;
 
 // ----------- admin -----------
-// 全站只有"未登录观众"和"已登录主播"两种角色; 默认密码 admin (后续做修改密码后台前临时硬编码)。
-// URL ?key= 自动写入已取消 (反直觉魔法行为); CSV 导出仍把密码作为 query 拼在 URL 上,
-// 因为 location.href 跳转无法塞自定义 header。
 let isAdmin = false;
 
 function getAdminKey() { return localStorage.getItem("admin_key") || ""; }
@@ -543,15 +1623,22 @@ const PREF = {
 
 // ----------- event card -----------
 function renderEvent(e) {
+  const cnt = e.count || 1;
+  const yuchi = e.price_yuchi != null ? (e.price_yuchi * cnt) : null;
+  const tierValue = effectiveYuchiOf(e) * cnt;
+
+  // 根据等效鱼翅注入阶梯类名
+  let tierClass = "tier-0";
+  if (tierValue >= 1000) tierClass = "tier-4";
+  else if (tierValue >= 300) tierClass = "tier-3";
+  else if (tierValue >= 50) tierClass = "tier-2";
+  else if (tierValue >= 10) tierClass = "tier-1";
+
   const div = document.createElement("div");
-  div.className = "ev " + e.kind;
+  div.className = "ev " + e.kind + " " + tierClass;
   if (e.id != null) div.dataset.id = String(e.id);
   if (e.kind === "superchat" && e.done_at) div.dataset.done = "1";
 
-  const cnt = e.count || 1;
-  const yuchi = e.price_yuchi != null ? (e.price_yuchi * cnt) : null;
-  // 阶梯色用等效鱼翅 (含亲密度折算), 让玫瑰喷泉/向你而来 等亲密度礼物在历史 Tab 也享有金色高亮
-  const tierValue = effectiveYuchiOf(e) * cnt;
   if (tierValue > 0) div.style.setProperty("--item-color", getTierColor(tierValue));
 
   const timeStr = fmtTs(e.ts);
@@ -559,12 +1646,11 @@ function renderEvent(e) {
 
   let body;
   if (e.kind === "gift") {
-    // 有鱼翅按鱼翅 (真实价格), 否则按亲密度 (乾坤袋抽中礼物 + 超大丸星)
-    // 颜色统一走 effective_yuchi (= max(yuchi, intimacy/10)), 已在上面 tierValue 算好
     let priceTag = "";
     if (yuchi != null && yuchi > 0) {
       const shown = yuchi >= 10 ? Math.round(yuchi) : Number(yuchi.toFixed(2));
-      priceTag = ` <span class="price">${shown} 鱼翅</span>`;
+      const prefix = tierValue >= 1000 ? "👑 " : (tierValue >= 300 ? "✨ " : "");
+      priceTag = ` <span class="price">${prefix}${shown} 鱼翅</span>`;
     } else {
       const totalInt = (e.intimacy || 0) * cnt;
       if (totalInt > 0) {
@@ -576,27 +1662,28 @@ function renderEvent(e) {
     let priceTag = "";
     if (e.price_yuchi != null) {
       const shown = yuchi >= 10 ? Math.round(yuchi) : Number(yuchi.toFixed(2));
-      priceTag = ` <span class="price">${shown} 鱼翅</span>`;
+      const prefix = tierValue >= 1000 ? "👑 " : (tierValue >= 300 ? "✨ " : "");
+      priceTag = ` <span class="price">${prefix}${shown} 鱼翅</span>`;
     }
     body = `<div class="body"><span class="nick">${escHtml(e.nickname) || "?"}</span>${priceTag}: <span class="content">${escHtml(e.content)}</span></div>`;
   } else if (e.kind === "subscription") {
-    // 钻粉/贵族是 RMB 直购 (1 元 = 10 鱼翅);后端 price_yuchi 存的是折算后的鱼翅个数,
-    // 前端按 ÷10 还原成元展示。无 price 的双发副本 (odfpbc/rdfpbc) 走去重不会到这里;
-    // 但万一漏 (新协议变体) price_yuchi 为空时不渲染金额。
     let priceTag = "";
     if (e.price_yuchi != null) {
       const yuan = e.price_yuchi / 10;
       const shown = yuan >= 100 ? Math.round(yuan) : Number(yuan.toFixed(1));
-      priceTag = ` <span class="price">${shown} 元</span>`;
+      const prefix = tierValue >= 1000 ? "👑 " : (tierValue >= 300 ? "✨ " : "");
+      priceTag = ` <span class="price">${prefix}${shown} 元</span>`;
     }
     body = `<div class="body"><span class="nick">${escHtml(e.nickname) || "?"}</span> <b>${escHtml(e.gift_name)}</b>${priceTag}</div>`;
   } else {
     body = `<div class="body"><span class="nick">${escHtml(e.nickname) || "?"}</span>: ${escHtml(e.content)}</div>`;
   }
-  // 高能卡片包 swipe 容器: bg 在底, fg 浮于上, fg 可被 touch 拖拽
+
+  // 高能弹幕卡片包装：加上精致一键标记按钮供桌面端点击
   if (e.kind === "superchat") {
     const swipeHint = e.done_at ? "↺ 撤销" : "✓ 已完成";
-    div.innerHTML = `<div class="swipe-bg">${swipeHint}</div><div class="swipe-fg">${meta}${body}</div>`;
+    const doneBtn = `<button class="done-check-btn" aria-label="标记状态" title="${e.done_at ? '撤销已响应' : '标记已响应'}">${e.done_at ? '↺' : '✓'}</button>`;
+    div.innerHTML = `<div class="swipe-bg">${swipeHint}</div><div class="swipe-fg">${meta}${body}${doneBtn}</div>`;
   } else {
     div.innerHTML = meta + body;
   }
@@ -607,9 +1694,10 @@ function renderEvent(e) {
 const HASH_TO_TAB = {"": "gift", "/": "gift", "/high": "high", "/chat": "chat", "/history": "history"};
 function applyTab() {
   const tab = HASH_TO_TAB[location.hash.slice(1) || "/"] || "gift";
-  document.body.dataset.tab = tab;  // PC 端 ≥1024px 用此属性触发"礼物 + 高能"双栏 CSS
+  document.body.dataset.tab = tab;
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + tab));
-  document.querySelectorAll("nav.tabs a").forEach(a => a.classList.toggle("active", a.dataset.tab === tab));
+  // 同步更新移动端与桌面端导航 active 状态
+  document.querySelectorAll("nav.tabs a, .desktop-tabs a").forEach(a => a.classList.toggle("active", a.dataset.tab === tab));
   window.scrollTo(0, 0);
 }
 window.addEventListener("hashchange", applyTab);
@@ -617,17 +1705,36 @@ window.addEventListener("hashchange", applyTab);
 // ----------- 礼物 Tab -----------
 const giftFeed = $("giftFeed");
 
+// 每日累计统计与面板头部统计刷新逻辑
+let dailyStats = { total_yuchi: 0, superchat_events: 0 };
+
+function updateFeedHeaders() {
+  // A. 更新礼物列表的统计信息
+  const giftCountSpan = document.getElementById("giftCount");
+  if (giftCountSpan) {
+    const totalItems = giftFeed.querySelectorAll(".ev").length;
+    const permItems = giftFeed.querySelectorAll('.ev[data-perm="1"]').length;
+    const yuchiText = dailyStats.total_yuchi != null ? `${Math.round(dailyStats.total_yuchi)} 鱼翅` : "0 鱼翅";
+    giftCountSpan.textContent = totalItems ? `今日收到 ${yuchiText} · 列表 ${totalItems} (${permItems} 永久)` : `今日收到 ${yuchiText}`;
+  }
+  
+  // B. 更新高能列表的统计信息
+  const highCountSpan = document.getElementById("highCount");
+  const highStream = document.getElementById("highFeed");
+  if (highCountSpan && highStream) {
+    const totalItems = highStream.querySelectorAll('.ev.superchat').length;
+    const pendingItems = highStream.querySelectorAll('.ev.superchat:not([data-done="1"])').length;
+    const highText = dailyStats.superchat_events != null ? `${dailyStats.superchat_events} 次` : "0 次";
+    highCountSpan.textContent = totalItems ? `今日高能 ${highText} · 未响应 ${pendingItems}/${totalItems}` : `今日高能 ${highText}`;
+  }
+}
+
 function refreshGiftCount() {
-  const total = giftFeed.querySelectorAll(".ev").length;
-  const perm = giftFeed.querySelectorAll('.ev[data-perm="1"]').length;
-  $("giftCount").textContent = total ? `${total} (${perm} 永久)` : "";
+  updateFeedHeaders();
 }
 
 function classifyGift(e) {
   if (e.kind === "subscription") return { include: true, permanent: true, total: null };
-  // 等效鱼翅 = max(price_yuchi, intimacy/10)。
-  // 实时 WS 帧后端已算好 effective_yuchi 直接用;
-  // history 回填只有 price_yuchi + intimacy 两个原料, 前端按同样公式折算。
   const unit = effectiveYuchiOf(e);
   const total = unit * (e.count || 1);
   if (total < PREF.gift_threshold) return { include: false, permanent: false, total };
@@ -658,19 +1765,12 @@ function insertIntoGiftFeed(e, opts = {}) {
   if (transAll.length > STREAM_MAX) {
     for (let i = STREAM_MAX; i < transAll.length; i++) transAll[i].remove();
   }
-  if (!opts.backfill) flashBadge();
+  if (!opts.backfill) {
+    flashBadge();
+    triggerSpotlight(e);
+  }
   return el;
 }
-
-function ttlSweep() {
-  const cutoff = Date.now() - PIN_TTL_MS;
-  giftFeed.querySelectorAll('.ev[data-perm="0"]').forEach(el => {
-    const ts = Number(el.dataset.ts || 0);
-    if (ts && ts < cutoff) el.remove();
-  });
-  refreshGiftCount();
-}
-setInterval(ttlSweep, 60 * 1000);
 
 function onThresholdChange() {
   giftFeed.querySelectorAll('.ev[data-perm="0"]').forEach(el => {
@@ -680,6 +1780,7 @@ function onThresholdChange() {
   refreshGiftCount();
 }
 
+// 头部状态条闪烁
 function flashBadge() {
   const b = $("badgeFlash");
   b.classList.add("on");
@@ -688,25 +1789,33 @@ function flashBadge() {
 
 // ----------- 高能 Tab -----------
 const highStream = $("highFeed");
-function appendHigh(e) {
+function appendHigh(e, opts = {}) {
   highStream.prepend(renderEvent(e));
   while (highStream.childElementCount > STREAM_MAX) highStream.lastChild.remove();
   refreshHighCount();
-  vibrate(50);
+  if (!opts.backfill) {
+    vibrate(50);
+    triggerSpotlight(e);
+  }
 }
 function refreshHighCount() {
-  const total = highStream.querySelectorAll('.ev.superchat').length;
-  const pending = highStream.querySelectorAll('.ev.superchat:not([data-done="1"])').length;
-  $("highCount").textContent = total ? `未响应 ${pending}/${total}` : "";
+  updateFeedHeaders();
 }
 async function toggleHighDone(card) {
   if (!isAdmin) return;
   const id = card.dataset.id;
   const wasDone = card.dataset.done === "1";
   if (wasDone) delete card.dataset.done; else card.dataset.done = "1";
-  // 同步 swipe-bg 文案 (撤销/已完成)
+  
   const bg = card.querySelector('.swipe-bg');
   if (bg) bg.textContent = card.dataset.done === "1" ? "↺ 撤销" : "✓ 已完成";
+  
+  const btn = card.querySelector('.done-check-btn');
+  if (btn) {
+    btn.textContent = card.dataset.done === "1" ? "↺" : "✓";
+    btn.title = card.dataset.done === "1" ? "撤销已响应" : "标记已响应";
+  }
+
   refreshHighCount();
   try {
     const r = await fetch(`/api/event/${id}/done`, { method: "POST", headers: adminHeaders() });
@@ -714,13 +1823,15 @@ async function toggleHighDone(card) {
   } catch {
     if (wasDone) card.dataset.done = "1"; else delete card.dataset.done;
     if (bg) bg.textContent = card.dataset.done === "1" ? "↺ 撤销" : "✓ 已完成";
+    if (btn) {
+      btn.textContent = card.dataset.done === "1" ? "↺" : "✓";
+      btn.title = card.dataset.done === "1" ? "撤销已响应" : "标记已响应";
+    }
     refreshHighCount();
   }
 }
 
-// 触屏只允许左划 toggle (防误触, 用户要求); 鼠标可点击 toggle。
-// 用 PointerEvent.pointerType 区分: click 在现代浏览器是 PointerEvent, ev.pointerType="mouse"/"touch"/"pen"。
-// 触屏的 click 是 ev.pointerType==="touch", 直接屏蔽。
+// 桌面端鼠标点击卡片或一键标记按钮，触发状态转换
 highStream.addEventListener("click", ev => {
   if (ev.pointerType && ev.pointerType !== "mouse") return;
   if (!isAdmin) return;
@@ -730,8 +1841,8 @@ highStream.addEventListener("click", ev => {
   toggleHighDone(card);
 });
 
-// 左划标记: touchstart 锁定方向 (横/竖), 横向跟随手指; 释放时超阈值触发 toggle
-const SWIPE_THRESHOLD = 80;  // px; 跨过即视为有效左划
+// 左划标记手势
+const SWIPE_THRESHOLD = 80;
 let swipeState = null;
 highStream.addEventListener("touchstart", ev => {
   if (!isAdmin) { swipeState = null; return; }
@@ -739,7 +1850,6 @@ highStream.addEventListener("touchstart", ev => {
   if (!card) return;
   const fg = card.querySelector('.swipe-fg');
   if (!fg) return;
-  // 滑动开始时根据当前状态写入提示文案 (toggleHighDone 也会同步, 这里是双保险)
   const bg = card.querySelector('.swipe-bg');
   if (bg) bg.textContent = card.dataset.done === "1" ? "↺ 撤销" : "✓ 已完成";
   const t = ev.touches[0];
@@ -757,9 +1867,8 @@ highStream.addEventListener("touchmove", ev => {
     if (swipeState.locked === "h") swipeState.card.classList.add("swiping");
   }
   if (swipeState.locked !== "h") return;
-  const offset = Math.min(0, Math.max(dx, -160));   // 限幅 -160 不让一直拖到天边
+  const offset = Math.min(0, Math.max(dx, -160));
   swipeState.fg.style.transform = `translateX(${offset}px)`;
-  // 跨过阈值时一次性触感, 提示用户已可松手
   if (!swipeState.triggered && offset <= -SWIPE_THRESHOLD) {
     swipeState.triggered = true;
     vibrate(30);
@@ -772,7 +1881,7 @@ highStream.addEventListener("touchend", () => {
   if (!swipeState) return;
   const { card, fg, triggered } = swipeState;
   card.classList.remove("swiping");
-  fg.style.transform = "";   // 回弹 (CSS transition 接管)
+  fg.style.transform = "";
   if (triggered) toggleHighDone(card);
   swipeState = null;
 }, {passive: true});
@@ -872,7 +1981,6 @@ function pushHotBarrage(e) {
   hotStream.insertBefore(div, hotStream.firstChild);
 }
 
-// 周期清扫: 60s 内没再被触发的弹幕/热梗自动消失 (匹配 UI 提示文案)
 function dedupSweep() {
   const cutoff = Date.now() - DEDUP_TTL_MS;
   for (const [key, info] of dedupChat) {
@@ -913,10 +2021,6 @@ $("chatClear").onclick = () => {
 };
 
 // ----------- websocket -----------
-// 重连状态: 移动端切到后台 / 网络抖动后, 我们需要主动恢复 + 把错过的事件补回来。
-//   lastEventTs    — 最近收到的事件 ts (ms), 用于 reconnect 后向 history API 请求增量
-//   reconnectAttempt — 指数退避计数, onopen 时清零
-//   reconnectTimer — 当前挂着的重连定时器句柄, visibilitychange 抢占用
 let ws = null;
 let lastEventTs = Date.now();
 let reconnectAttempt = 0;
@@ -924,60 +2028,61 @@ let reconnectTimer = null;
 
 function scheduleReconnect() {
   if (reconnectTimer) clearTimeout(reconnectTimer);
-  // 1s → 2s → 4s → 8s → 16s → 30s 封顶。Mobile 浏览器后台时仍可能 fire,
-  // 切回前台后 visibilitychange 会抢占成立即重连。
   const delay = Math.min(1000 * Math.pow(2, reconnectAttempt), 30000);
   reconnectAttempt += 1;
   reconnectTimer = setTimeout(() => { reconnectTimer = null; connect(); }, delay);
 }
 
 async function backfillSince(sinceMs) {
-  // 重连成功后调一次, 把断线期间错过的礼物/订阅/高能补到面板上。
-  // chat / hot_barrage / vip_info 是 ephemeral 不持久化, 历史 API 不返回, 无需也无法补。
   try {
     const rows = await fetch(`/api/history?since_ms=${sinceMs + 1}&limit=200`).then(r => r.json());
     if (!Array.isArray(rows)) return;
     rows.slice().reverse().forEach(r => {
-      if (r.id != null && document.querySelector(`[data-id="${r.id}"]`)) return;  // 已渲染过, 跳过
+      if (r.id != null && document.querySelector(`[data-id="${r.id}"]`)) return;
       if (r.kind === "gift" || r.kind === "subscription") {
         insertIntoGiftFeed(r, {backfill: true});
       } else if (r.kind === "superchat") {
-        appendHigh(r);
+        appendHigh(r, {backfill: true});
       }
     });
     refreshGiftCount(); refreshHighCount();
-  } catch (e) { /* 网络问题就静默 */ }
+  } catch (e) {}
 }
 
 function connect() {
   const proto = location.protocol === "https:" ? "wss" : "ws";
   ws = new WebSocket(`${proto}://${location.host}/ws/live`);
   ws.onopen = () => {
-    $("status").textContent = "在线"; $("status").className = "pill ok";
+    // 连接成功但暂不修改 #liveStatus, 等服务器 push 的 room_info 再确定开播/未开播
+    updateAvatarStatus(true, currentLiveStatus);
     const wasReconnect = reconnectAttempt > 0;
     reconnectAttempt = 0;
     if (wasReconnect) backfillSince(lastEventTs);
   };
   ws.onclose = () => {
-    $("status").textContent = "离线,重连中"; $("status").className = "pill bad";
+    // 连接断开: liveStatus 退回提示, 物理连接点同步置红
+    $("liveStatus").textContent = "重连中…";
+    $("liveStatus").className = "pill offline";
+    updateAvatarStatus(false, currentLiveStatus);
     scheduleReconnect();
   };
   ws.onmessage = ev => {
     const e = JSON.parse(ev.data);
     if (typeof e.ts === "number") lastEventTs = Math.max(lastEventTs, e.ts);
     if (e.kind === "room_info") {
+      currentLiveStatus = (e.show_status === 1);
+      const isConnected = ws && ws.readyState === WebSocket.OPEN;
+      updateAvatarStatus(isConnected, currentLiveStatus);
       const ls = $("liveStatus"); ls.style.display = "";
       ls.textContent = e.show_status === 1 ? "直播中" : "未开播";
       ls.className = "pill " + (e.show_status === 1 ? "live" : "offline");
-      // 主播名 + 头像 (只在拿到非空值时更新, 避免覆盖已有显示)
       if (e.owner_name) $("ownerName").textContent = e.owner_name;
       if (e.avatar_url) {
         const av = $("ownerAvatar");
-        // placeholder div 替换成 img; 已是 img 时只更新 src
         if (av.tagName !== "IMG") {
           const img = document.createElement("img");
           img.className = "avatar"; img.id = "ownerAvatar"; img.alt = "";
-          img.referrerPolicy = "no-referrer";  // 斗鱼图床防盗链
+          img.referrerPolicy = "no-referrer";
           img.src = e.avatar_url;
           av.replaceWith(img);
         } else if (av.src !== e.avatar_url) {
@@ -997,22 +2102,28 @@ function connect() {
     if (e.kind === "subscription") { insertIntoGiftFeed(e); refreshGiftCount(); flashBadge(); return; }
     if (e.kind === "done_changed") {
       const card = highStream.querySelector(`.ev.superchat[data-id="${e.id}"]`);
-      if (card) { if (e.done_at) card.dataset.done = "1"; else delete card.dataset.done; refreshHighCount(); }
+      if (card) { 
+        if (e.done_at) card.dataset.done = "1"; else delete card.dataset.done; 
+        const bg = card.querySelector('.swipe-bg');
+        if (bg) bg.textContent = e.done_at ? "↺ 撤销" : "✓ 已完成";
+        const btn = card.querySelector('.done-check-btn');
+        if (btn) {
+          btn.textContent = e.done_at ? "↺" : "✓";
+          btn.title = e.done_at ? "撤销已响应" : "标记已响应";
+        }
+        refreshHighCount(); 
+      }
     }
   };
 }
 
-// 浮动刷新按钮: 自动重连失败 / 状态混乱时最稳的逃生口。
-// 用 reload(false) 走浏览器缓存, 比硬刷新快, 静态资源没变时几乎瞬间完成。
 $("fabReload").onclick = () => location.reload();
 
-// 移动端切到后台→回到前台时主动检查连接。WS 在系统挂起时可能进入半死状态
-// (onclose 没 fire 或者退避计时器没赶上), 回前台靠这个钩子立即恢复。
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState !== "visible") return;
-  if (ws && ws.readyState === WebSocket.OPEN) return;     // 还活着, 不动
+  if (ws && ws.readyState === WebSocket.OPEN) return;
   if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
-  reconnectAttempt = 0;   // 用户回来了, 跳过退避立即试
+  reconnectAttempt = 0;
   try { ws && ws.close(); } catch {}
   connect();
 });
@@ -1024,6 +2135,31 @@ document.addEventListener("visibilitychange", () => {
   await checkAdmin();
   applyTab();
   
+  // 绑定声音控制胶囊按钮事件
+  const audioToggleBtn = $("audioToggleBtn");
+  audioToggleBtn.addEventListener("click", () => {
+    audioEnabled = !audioEnabled;
+    const ico = audioToggleBtn.querySelector(".audio-ico");
+    if (audioEnabled) {
+      audioToggleBtn.classList.add("enabled");
+      ico.textContent = "🔊";
+      audioToggleBtn.title = "关闭音效";
+      playWindChime('click', true); // 强制播放一声清亮风铃声，作为声感反馈
+    } else {
+      audioToggleBtn.classList.remove("enabled");
+      ico.textContent = "🔇";
+      audioToggleBtn.title = "开启音效";
+    }
+  });
+
+  // 初始化主播温馨电台的各组件
+  updateWelcomePanel();
+  rotateWelcomeQuote();
+  initChimeInteraction();
+  // 开启定时更新时钟及滚动语录
+  setInterval(updateWelcomePanel, 1000);
+  setInterval(rotateWelcomeQuote, 20000);
+  
   const since = (() => {
     const d = new Date(); d.setHours(4,0,0,0);
     if (new Date() < d) d.setDate(d.getDate()-1);
@@ -1033,16 +2169,25 @@ document.addEventListener("visibilitychange", () => {
   if (Array.isArray(rows)) {
     rows.slice().reverse().forEach(r => {
       if (r.kind === "gift" || r.kind === "subscription") insertIntoGiftFeed(r, {backfill:true});
-      else if (r.kind === "superchat") appendHigh(r);
+      else if (r.kind === "superchat") appendHigh(r, {backfill:true});
     });
   }
   refreshGiftCount();
   connect();
   
+  // 初始化物理连接状态指示
+  updateAvatarStatus(false, false);
+
   const refreshStats = async () => {
-    const s = await fetch("/api/stats").then(r => r.json());
-    $("stats").textContent = `鱼翅 ${Math.round(s.total_yuchi)} · 高能 ${s.superchat_events}`;
-    $("stats").style.display = "";
+    try {
+      const s = await fetch("/api/stats").then(r => r.json());
+      dailyStats = s;
+      updateFeedHeaders();
+      // 顶部 stats pill: 鱼翅 X · 高能 Y, 首次拿到数据后才显示
+      const statsPill = $("stats");
+      statsPill.textContent = `鱼翅 ${Math.round(s.total_yuchi || 0)} · 高能 ${s.superchat_events || 0}`;
+      statsPill.style.display = "";
+    } catch (e) {}
   };
   refreshStats(); setInterval(refreshStats, 15000);
 })();
@@ -1056,17 +2201,14 @@ $("giftThreshold").addEventListener("keydown", e => {
   if (e.key === "Enter") { e.preventDefault(); $("giftThresholdApply").click(); }
 });
 $("histDate").value = new Date().toISOString().split('T')[0];
-// 高能筛选器仅在选了 kind=superchat 时显示
+
 $("histKind").onchange = () => {
   const k = $("histKind").value;
-  // 高能筛选只在 kind=superchat 显示; 礼物筛选在 kind=gift 或全部 时显示
   $("highFilters").style.display = k === "superchat" ? "" : "none";
   $("giftFilters").style.display = (k === "" || k === "gift") ? "" : "none";
 };
 async function runHistoryQuery() {
   const since = new Date($("histDate").value + "T04:00:00").getTime();
-  // limit=2000: 后端 cap 5000, 这里要 2000 留充足余量装下任何忙日的全天有价值礼物。
-  // hide_zero=true 时 0 价值物在 SQL 层就过滤掉, 不挤占 limit。
   const params = new URLSearchParams({since_ms: since, until_ms: since+86400000, limit:2000});
   const kind = $("histKind").value;
   if (kind) params.set("kind", kind);
@@ -1086,10 +2228,8 @@ async function runHistoryQuery() {
   $("histSummary").textContent = `查询到 ${rows.length} 条${hint}`;
 }
 $("histLoad").onclick = runHistoryQuery;
-// 切换 0 价值过滤时自动重查 — 后端 LIMIT 作用在过滤前/后差别大, 前端无法本地切换
 $("histHideZeroValue").onchange = () => { if ($("histFeed").children.length) runHistoryQuery(); };
 $("histExport").onclick = () => {
-  // 导出走 GET 重定向, 必须把 key 拼到 URL (后端 _require_admin 也接受 ?key= 形式)
   location.href = `/api/export.csv?date=${$("histDate").value}&kind=${$("histKind").value}&key=${encodeURIComponent(getAdminKey())}`;
 };
 $("loginBtn").onclick = showLoginModal;
@@ -1100,10 +2240,75 @@ $("loginPw").addEventListener("keydown", e => {
   if (e.key === "Enter") { e.preventDefault(); submitLogin(); }
   else if (e.key === "Escape") hideLoginModal();
 });
-// 点击蒙版 (非卡片本身) 关闭
 $("loginModal").addEventListener("click", e => {
   if (e.target === e.currentTarget) hideLoginModal();
 });
+
+// === 模拟事件 (供浏览器 console 调试 UI 用, 不会写入数据库) ===
+// 调用方式: simGift.yumengPlane() / simGift.keyOfHeart100() / simGift.superchat100() ...
+window.simGift = (() => {
+  let _id = 9_000_000;
+  const nextId = () => ++_id;
+  const NICK = "测试观众";
+
+  const fireGift = (gift_name, count, opts = {}) => {
+    const e = {
+      kind: "gift",
+      ts: Date.now(),
+      id: nextId(),
+      nickname: opts.nickname || NICK,
+      gift_name,
+      count,
+      price_yuchi: opts.price_yuchi ?? null,
+      intimacy: opts.intimacy ?? null,
+      // 与后端 effective_yuchi 规则保持一致: max(price_yuchi, intimacy/10)
+      effective_yuchi:
+        opts.effective_yuchi ??
+        Math.max(opts.price_yuchi || 0, (opts.intimacy || 0) / 10),
+    };
+    insertIntoGiftFeed(e);
+    refreshGiftCount();
+    return e;
+  };
+
+  const fireSuperchat = (content, price_yuchi) => {
+    const e = {
+      kind: "superchat",
+      ts: Date.now(),
+      id: nextId(),
+      nickname: NICK,
+      content,
+      price_yuchi,
+    };
+    appendHigh(e);
+    return e;
+  };
+
+  return {
+    // 100 鱼翅飞机系列 (单发即永久, total=100 命中 PIN_PERMANENT)
+    yumengPlane:      () => fireGift("羽梦飞机", 1, { price_yuchi: 100 }),
+    confessionPlane:  () => fireGift("告白飞机", 1, { price_yuchi: 100 }),
+    // 100 个叩心之钥 (开锁抽奖, 单价取 6 鱼翅, total=600)
+    keyOfHeart100:    () => fireGift("叩心之钥", 100, { price_yuchi: 6 }),
+    // 1000 亲密度抽奖产物 (无鱼翅价, 走 intimacy/10 折算 effective=100, 永久)
+    lookBack:         () => fireGift("回眸之后", 1, { intimacy: 1000 }),
+    // 500 鱼翅告白火箭 (Tier 3, 触发金色光晕 + 播报横幅)
+    confessionRocket: () => fireGift("告白火箭", 1, { price_yuchi: 500 }),
+    // 高能弹幕
+    superchat50:      () => fireSuperchat("测试 — 50 鱼翅高能弹幕", 50),
+    superchat100:    () => fireSuperchat("测试 — 100 鱼翅高能弹幕", 100),
+  };
+})();
+console.log(
+  "[simGift] 已挂载, 可在 console 调用:\n" +
+  "  simGift.yumengPlane()       — 100 鱼翅羽梦飞机\n" +
+  "  simGift.confessionPlane()   — 100 鱼翅告白飞机\n" +
+  "  simGift.keyOfHeart100()     — 100 个叩心之钥 (600 鱼翅)\n" +
+  "  simGift.lookBack()          — 1000 亲密度回眸之后\n" +
+  "  simGift.confessionRocket()  — 500 鱼翅告白火箭\n" +
+  "  simGift.superchat50()       — 50 鱼翅高能弹幕\n" +
+  "  simGift.superchat100()      — 100 鱼翅高能弹幕"
+);
 </script>
 </body>
 </html>
