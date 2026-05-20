@@ -155,11 +155,12 @@
   .ev .nick { font-weight: 700; }
   .ev .body { font-size: 14px; line-height: 1.5; word-break: break-all; }
   
-  /* 颜色阶梯：由 JS 根据金额注入 --tier 变量 */
-  .ev.gift, .ev.superchat { border-left: 4px solid var(--item-color, var(--tier-0)); }
-  .ev.gift[data-perm="1"] { box-shadow: 0 0 0 1px var(--item-color, var(--tier-0)) inset; }
+  /* 颜色阶梯：由 JS 根据等效鱼翅 (含亲密度÷10折算) 注入 --item-color。
+     subscription (钻粉/贵族) 也走同色阶梯, 钻粉一月 1580 鱼翅 → tier-4 深红边框。
+     亲密度礼物的价格文字不再硬编码粉红, 改为跟随 tier 色 (20 亲密度 = 2 鱼翅 = tier-0)。 */
+  .ev.gift, .ev.superchat, .ev.subscription { border-left: 4px solid var(--item-color, var(--tier-0)); }
+  .ev.gift[data-perm="1"], .ev.subscription[data-perm="1"] { box-shadow: 0 0 0 1px var(--item-color, var(--tier-0)) inset; }
   .ev .price { color: var(--item-color, var(--tier-0)); font-weight: 800; }
-  .ev .price.intimacy { color: #d05a8c; }    /* 亲密度礼物 (乾坤袋抽中类): 粉红 */
 
   /* 高能卡片状态 */
   .ev.superchat { overflow: hidden; padding: 0; }   /* swipe-fg 自带 padding, 容器去除 */
@@ -359,8 +360,9 @@
         <input type="date" id="histDate" style="flex:1">
         <select id="histKind">
           <option value="">全部</option>
-          <option value="superchat">高能</option>
           <option value="gift">礼物</option>
+          <option value="subscription">钻粉/贵族</option>
+          <option value="superchat">高能</option>
         </select>
         <button id="histLoad">查询</button>
       </div>
@@ -372,6 +374,14 @@
           <option value="done">已响应</option>
         </select>
         <input id="histQ" placeholder="关键词搜索 (内容/昵称)" style="flex:1">
+      </div>
+      <!-- 礼物筛选: kind=gift 或全部 时展开。"0 价值礼物" 指 price_yuchi 和 intimacy 都
+           NULL 的行 (陪伴印章/粉丝荧光棒/钻粉荧光棒/星光棒等粉丝团连刷物), 这些虽然在 DB
+           里, 但价值未知不影响主播翻账。默认勾上去屏蔽。 -->
+      <div class="filters" id="giftFilters">
+        <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:14px">
+          <input type="checkbox" id="histHideZeroValue" checked> 隐藏荧光棒类型礼物
+        </label>
       </div>
       <div class="filters admin-only">
         <button id="histExport" style="width:100%; background:var(--secondary)">导出当日 CSV</button>
@@ -524,9 +534,9 @@ function renderEvent(e) {
 
   const cnt = e.count || 1;
   const yuchi = e.price_yuchi != null ? (e.price_yuchi * cnt) : null;
-  // 阶梯色用等效鱼翅 (含亲密度折算),让"超大丸星"这类大亲密度礼物也享有金色高亮
-  const tierValue = e.effective_yuchi != null ? e.effective_yuchi * cnt : yuchi;
-  if (tierValue != null && tierValue > 0) div.style.setProperty("--item-color", getTierColor(tierValue));
+  // 阶梯色用等效鱼翅 (含亲密度折算), 让玫瑰喷泉/向你而来 等亲密度礼物在历史 Tab 也享有金色高亮
+  const tierValue = effectiveYuchiOf(e) * cnt;
+  if (tierValue > 0) div.style.setProperty("--item-color", getTierColor(tierValue));
 
   const timeStr = fmtTs(e.ts);
   const meta = `<div class="meta"><span class="time">${timeStr}</span>${e.id ? `<span class="id">#${e.id}</span>` : ""}</div>`;
@@ -599,12 +609,18 @@ function refreshGiftCount() {
 
 function classifyGift(e) {
   if (e.kind === "subscription") return { include: true, permanent: true, total: null };
-  // 等效鱼翅 = max(price_yuchi, intimacy/10);后端 collector 已经算好了 effective_yuchi。
-  // 历史 API 不带此字段,fallback 到 price_yuchi (亲密度礼物在历史 Tab 里就只按真鱼翅看)。
-  const unit = e.effective_yuchi != null ? e.effective_yuchi : (e.price_yuchi || 0);
+  // 等效鱼翅 = max(price_yuchi, intimacy/10)。
+  // 实时 WS 帧后端已算好 effective_yuchi 直接用;
+  // history 回填只有 price_yuchi + intimacy 两个原料, 前端按同样公式折算。
+  const unit = effectiveYuchiOf(e);
   const total = unit * (e.count || 1);
   if (total < PREF.gift_threshold) return { include: false, permanent: false, total };
   return { include: true, permanent: total >= PIN_PERMANENT, total };
+}
+
+function effectiveYuchiOf(e) {
+  if (e.effective_yuchi != null) return e.effective_yuchi;
+  return Math.max(e.price_yuchi || 0, (e.intimacy || 0) / 10);
 }
 
 function insertIntoGiftFeed(e, opts = {}) {
@@ -881,16 +897,58 @@ $("chatClear").onclick = () => {
 };
 
 // ----------- websocket -----------
+// 重连状态: 移动端切到后台 / 网络抖动后, 我们需要主动恢复 + 把错过的事件补回来。
+//   lastEventTs    — 最近收到的事件 ts (ms), 用于 reconnect 后向 history API 请求增量
+//   reconnectAttempt — 指数退避计数, onopen 时清零
+//   reconnectTimer — 当前挂着的重连定时器句柄, visibilitychange 抢占用
+let ws = null;
+let lastEventTs = Date.now();
+let reconnectAttempt = 0;
+let reconnectTimer = null;
+
+function scheduleReconnect() {
+  if (reconnectTimer) clearTimeout(reconnectTimer);
+  // 1s → 2s → 4s → 8s → 16s → 30s 封顶。Mobile 浏览器后台时仍可能 fire,
+  // 切回前台后 visibilitychange 会抢占成立即重连。
+  const delay = Math.min(1000 * Math.pow(2, reconnectAttempt), 30000);
+  reconnectAttempt += 1;
+  reconnectTimer = setTimeout(() => { reconnectTimer = null; connect(); }, delay);
+}
+
+async function backfillSince(sinceMs) {
+  // 重连成功后调一次, 把断线期间错过的礼物/订阅/高能补到面板上。
+  // chat / hot_barrage / vip_info 是 ephemeral 不持久化, 历史 API 不返回, 无需也无法补。
+  try {
+    const rows = await fetch(`/api/history?since_ms=${sinceMs + 1}&limit=200`).then(r => r.json());
+    if (!Array.isArray(rows)) return;
+    rows.slice().reverse().forEach(r => {
+      if (r.id != null && document.querySelector(`[data-id="${r.id}"]`)) return;  // 已渲染过, 跳过
+      if (r.kind === "gift" || r.kind === "subscription") {
+        insertIntoGiftFeed(r, {backfill: true});
+      } else if (r.kind === "superchat") {
+        appendHigh(r);
+      }
+    });
+    refreshGiftCount(); refreshHighCount();
+  } catch (e) { /* 网络问题就静默 */ }
+}
+
 function connect() {
   const proto = location.protocol === "https:" ? "wss" : "ws";
-  const ws = new WebSocket(`${proto}://${location.host}/ws/live`);
-  ws.onopen = () => { $("status").textContent = "在线"; $("status").className = "pill ok"; };
+  ws = new WebSocket(`${proto}://${location.host}/ws/live`);
+  ws.onopen = () => {
+    $("status").textContent = "在线"; $("status").className = "pill ok";
+    const wasReconnect = reconnectAttempt > 0;
+    reconnectAttempt = 0;
+    if (wasReconnect) backfillSince(lastEventTs);
+  };
   ws.onclose = () => {
     $("status").textContent = "离线,重连中"; $("status").className = "pill bad";
-    setTimeout(connect, 3000);
+    scheduleReconnect();
   };
   ws.onmessage = ev => {
     const e = JSON.parse(ev.data);
+    if (typeof e.ts === "number") lastEventTs = Math.max(lastEventTs, e.ts);
     if (e.kind === "room_info") {
       const ls = $("liveStatus"); ls.style.display = "";
       ls.textContent = e.show_status === 1 ? "直播中" : "未开播";
@@ -927,6 +985,17 @@ function connect() {
     }
   };
 }
+
+// 移动端切到后台→回到前台时主动检查连接。WS 在系统挂起时可能进入半死状态
+// (onclose 没 fire 或者退避计时器没赶上), 回前台靠这个钩子立即恢复。
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") return;
+  if (ws && ws.readyState === WebSocket.OPEN) return;     // 还活着, 不动
+  if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+  reconnectAttempt = 0;   // 用户回来了, 跳过退避立即试
+  try { ws && ws.close(); } catch {}
+  connect();
+});
 
 // ----------- init -----------
 (async () => {
@@ -969,11 +1038,16 @@ $("giftThreshold").addEventListener("keydown", e => {
 $("histDate").value = new Date().toISOString().split('T')[0];
 // 高能筛选器仅在选了 kind=superchat 时显示
 $("histKind").onchange = () => {
-  $("highFilters").style.display = $("histKind").value === "superchat" ? "" : "none";
+  const k = $("histKind").value;
+  // 高能筛选只在 kind=superchat 显示; 礼物筛选在 kind=gift 或全部 时显示
+  $("highFilters").style.display = k === "superchat" ? "" : "none";
+  $("giftFilters").style.display = (k === "" || k === "gift") ? "" : "none";
 };
-$("histLoad").onclick = async () => {
+async function runHistoryQuery() {
   const since = new Date($("histDate").value + "T04:00:00").getTime();
-  const params = new URLSearchParams({since_ms: since, until_ms: since+86400000, limit:500});
+  // limit=2000: 后端 cap 5000, 这里要 2000 留充足余量装下任何忙日的全天有价值礼物。
+  // hide_zero=true 时 0 价值物在 SQL 层就过滤掉, 不挤占 limit。
+  const params = new URLSearchParams({since_ms: since, until_ms: since+86400000, limit:2000});
   const kind = $("histKind").value;
   if (kind) params.set("kind", kind);
   if (kind === "superchat") {
@@ -982,12 +1056,18 @@ $("histLoad").onclick = async () => {
     const q = $("histQ").value.trim();
     if (q) params.set("q", q);
   }
+  const hideZero = $("histHideZeroValue").checked;
+  if (hideZero) params.set("hide_zero", "true");
   const rows = await fetch("/api/history?" + params).then(r => r.json());
   const f = $("histFeed"); f.innerHTML = "";
   if (!rows.length) f.innerHTML = '<div class="empty">无数据</div>';
   else rows.forEach(r => f.appendChild(renderEvent(r)));
-  $("histSummary").textContent = `查询到 ${rows.length} 条`;
-};
+  const hint = hideZero ? " (已隐藏荧光棒类型)" : "";
+  $("histSummary").textContent = `查询到 ${rows.length} 条${hint}`;
+}
+$("histLoad").onclick = runHistoryQuery;
+// 切换 0 价值过滤时自动重查 — 后端 LIMIT 作用在过滤前/后差别大, 前端无法本地切换
+$("histHideZeroValue").onchange = () => { if ($("histFeed").children.length) runHistoryQuery(); };
 $("histExport").onclick = () => {
   // 导出走 GET 重定向, 必须把 key 拼到 URL (后端 _require_admin 也接受 ?key= 形式)
   location.href = `/api/export.csv?date=${$("histDate").value}&kind=${$("histKind").value}&key=${encodeURIComponent(getAdminKey())}`;

@@ -29,8 +29,9 @@ CREATE INDEX IF NOT EXISTS idx_events_kind     ON events(kind);
 
 # Columns added after initial release; applied idempotently to existing DBs.
 _MIGRATIONS = [
-    ("color",   "INTEGER"),
-    ("done_at", "INTEGER"),  # 高能弹幕"已响应"时间戳 (ms)；NULL = 未处理
+    ("color",    "INTEGER"),
+    ("done_at",  "INTEGER"),  # 高能弹幕"已响应"时间戳 (ms)；NULL = 未处理
+    ("intimacy", "INTEGER"),  # 单位亲密度 (pandora/catalog 命中亲密度礼物); 用于 max(price_yuchi, intimacy/10) 等效鱼翅折算
 ]
 
 
@@ -51,8 +52,8 @@ class Store:
         cur = self._conn.execute(
             """INSERT INTO events
                (ts, room_id, kind, uid, nickname, gift_id, gift_name,
-                count, price_yuchi, content, color, raw)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                count, price_yuchi, content, color, raw, intimacy)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 event.get("ts") or int(time.time() * 1000),
                 event["room_id"],
@@ -66,6 +67,7 @@ class Store:
                 event.get("content"),
                 event.get("color"),
                 event.get("raw"),
+                event.get("intimacy"),
             ),
         )
         return cur.lastrowid
@@ -80,6 +82,7 @@ class Store:
         before_id: int | None = None,
         q: str | None = None,
         done_filter: str | None = None,
+        hide_zero_value: bool = False,
         limit: int = 100,
     ) -> list[dict]:
         sql = ["SELECT * FROM events WHERE room_id = ?"]
@@ -87,6 +90,11 @@ class Store:
         if kind:
             sql.append("AND kind = ?")
             args.append(kind)
+        if hide_zero_value:
+            # 屏蔽 price_yuchi 和 intimacy 双 NULL 的礼物 (粉丝团连刷物 / 陪伴印章等)。
+            # 让 LIMIT 作用在过滤后, 等于把展示容量留给真正有价值的事件。
+            # subscription/superchat 行不命中这个条件 (都有 price_yuchi)。
+            sql.append("AND NOT (kind = 'gift' AND price_yuchi IS NULL AND intimacy IS NULL)")
         if uid:
             sql.append("AND uid = ?")
             args.append(uid)
@@ -111,7 +119,9 @@ class Store:
         elif done_filter == "done":
             sql.append("AND done_at IS NOT NULL")
         sql.append("ORDER BY id DESC LIMIT ?")
-        args.append(min(max(1, limit), 500))
+        # cap 5000: 一日典型有价值礼物 < 1000, 5k 留出忙日 + 多日跨度余量;
+        # 上限存在是防止恶意/笔误 limit=999999 拖垮 SQLite。
+        args.append(min(max(1, limit), 5000))
         rows = self._conn.execute(" ".join(sql), args).fetchall()
         return [dict(r) for r in rows]
 
@@ -139,7 +149,7 @@ class Store:
         """Return events for CSV export. Excludes uid (privacy) and raw (size)."""
         sql = [
             "SELECT id, ts, kind, nickname, gift_id, gift_name, count,"
-            " price_yuchi, content, color, done_at FROM events"
+            " price_yuchi, intimacy, content, color, done_at FROM events"
             " WHERE room_id = ? AND ts >= ? AND ts < ?"
         ]
         args: list[Any] = [room_id, since_ms, until_ms]

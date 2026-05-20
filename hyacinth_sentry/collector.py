@@ -47,6 +47,22 @@ _DEDUP_LRU_CAP = 256
 _DIAG_LOG_PATH = PROJECT_DIR / "diag.log"
 _DIAG_SAMPLES = 5
 
+# 已知 0 价值粉丝团/活动连刷物。低位 gfid, v3 catalog 不收录, 实测从未带任何价值字段。
+# 生产 10 天数据 (events.db 17375 行) 里这 4 种占 totally_unknown 礼物的 ~97%:
+#   陪伴印章(3410): 4474 events / 191万 units
+#   粉丝荧光棒(824/1914): 4252 events
+#   钻粉荧光棒(22899): 2619 events
+#   星光棒(3567): 853 events
+# 提前 drop 避免 DB 被刷屏; 主播界面的核心信号 (鱼翅/亲密度大礼) 不受影响。
+# 想撤销某条 gfid 拉黑, 从此集合移除即可, 不需要其他改动。
+_ZERO_VALUE_GIFT_IDS: frozenset[int] = frozenset({
+    3410,   # 陪伴印章
+    824,    # 粉丝荧光棒
+    1914,   # 粉丝荧光棒 (variant)
+    22899,  # 钻粉荧光棒
+    3567,   # 星光棒
+})
+
 # Douyu splits chat across multiple "groups" on busy rooms; joining several
 # yields ~40% more chatmsg than the broadcast group alone (verified A/B).
 GIDS_TO_JOIN: tuple[int, ...] = (-9999, 1, 2, 3, 4, 5)
@@ -291,6 +307,8 @@ class Collector:
             return
         if kind == "gift":
             gfid = _to_int(kv.get("gfid"))
+            if gfid in _ZERO_VALUE_GIFT_IDS:
+                return  # 已知 0 价值粉丝团连刷物, 不入 DB 不广播
             pid = _to_int(kv.get("pid"))
             count = _to_int(kv.get("gfcnt")) or 1
             # name resolution: gfn (in payload) > catalog[gfid|pid] > pandora[pid] > placeholder

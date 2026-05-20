@@ -249,6 +249,7 @@ async def api_history(
     before_id: int | None = None,
     q: str | None = Query(None, max_length=80),
     done: str | None = Query(None, pattern="^(pending|done|all)$"),
+    hide_zero: bool = False,
     limit: int = 100,
 ):
     if ROOM_ID <= 0:
@@ -262,6 +263,7 @@ async def api_history(
         before_id=before_id,
         q=q,
         done_filter=done if done and done != "all" else None,
+        hide_zero_value=hide_zero,
         limit=limit,
     )
 
@@ -298,14 +300,15 @@ async def api_export_csv(
     w = csv.writer(out)
     w.writerow([
         "id", "ts", "iso_time", "kind", "nickname",
-        "gift_id", "gift_name", "count", "price_yuchi", "content", "color", "done_at",
+        "gift_id", "gift_name", "count", "price_yuchi", "intimacy",
+        "content", "color", "done_at",
     ])
     for r in rows:
         iso = datetime.fromtimestamp(r["ts"] / 1000).isoformat(sep=" ", timespec="seconds")
         w.writerow([
             r["id"], r["ts"], iso, r["kind"], r["nickname"],
             r["gift_id"], r["gift_name"], r["count"], r["price_yuchi"],
-            r["content"], r["color"], r.get("done_at"),
+            r.get("intimacy"), r["content"], r["color"], r.get("done_at"),
         ])
     label = date or datetime.now().strftime("%Y-%m-%d")
     body = out.getvalue().encode("utf-8-sig")  # BOM so Excel opens UTF-8 cleanly
