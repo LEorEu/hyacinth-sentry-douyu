@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Hyacinth Sentry - 风信子哨兵</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
 <style>
   :root {
     /* 极致平滑美观的本地无损字体栈 */
@@ -114,6 +115,11 @@
     align-items: center;
     min-width: 0;
   }
+
+  /* 移动端 (< 1024px): 隐藏「直播中/未开播」pill,
+     头像框已经用脉冲动画指示直播状态, 避免 status-row 第二行被三个 pill 挤到换行。
+     桌面端 (≥ 1024px) 在下面的 @media 里仍保持显示。 */
+  header #liveStatus { display: none; }
 
   /* 右侧操作区：声音 + 登录/退出 */
   header .actions {
@@ -300,6 +306,26 @@
     background: rgba(251, 113, 133, 0.05);
     box-shadow: none;
   }
+
+  /* GitHub 源码图标按钮: 与 audio-toggle 同款圆钮, 但只有静态跳转, 没有 enabled 态 */
+  header .header-link-btn {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--bg-page);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+  }
+  header .header-link-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(251, 113, 133, 0.06);
+    box-shadow: 0 2px 8px rgba(251, 113, 133, 0.12);
+  }
+  header .header-link-btn svg { width: 18px; height: 18px; }
   
   @keyframes breath {
     0%, 100% { opacity: 0.9; transform: scale(1); }
@@ -627,6 +653,15 @@
 
   body.admin .ev.superchat .swipe-fg { cursor: pointer; }
 
+  /* 桌面端 admin 模式: ✓ 按钮 absolute 浮在右侧 14px, 给 .swipe-fg 留出 50px 右内边距,
+     长内容才不会跑到按钮下面去重合。移动端 (<1024) 隐藏按钮、只走左滑标完成。 */
+  @media (min-width: 1024px) {
+    body.admin .ev.superchat .swipe-fg { padding-right: 50px; }
+  }
+  @media (max-width: 1023.98px) {
+    body.admin .done-check-btn { display: none; }
+  }
+
   .ev.subscription { border-left: 4px solid var(--primary); }
   .ev.subscription .price { color: var(--primary); }
 
@@ -690,7 +725,8 @@
     header .status-row { display: contents; }
     header .brand { order: 1; flex-shrink: 0; }
     header #room { order: 2; }
-    header #liveStatus { order: 3; }
+    /* 移动端默认 display:none, 桌面端恢复显示并参与 flex 顺序 */
+    header #liveStatus { display: block; order: 3; }
     /* 弹性 spacer 把右侧 vipCount/stats/actions 整体推到最右;
        不依赖任何业务元素的显示状态 (#vipCount/#stats 默认 display:none) */
     header .inner::before {
@@ -1126,8 +1162,11 @@
       <a data-tab="history" href="#/history">历史</a>
     </div>
 
-    <!-- 右侧操作区：声音(图标圆钮) + 登录/退出(渐变 action 按钮) -->
+    <!-- 右侧操作区：源码(图标圆钮) + 声音(图标圆钮) + 登录/退出(渐变 action 按钮) -->
     <div class="actions">
+      <a class="header-link-btn" href="https://github.com/LEorEu/hyacinth-sentry-douyu" target="_blank" rel="noopener" title="项目源码 (GitHub)" aria-label="项目源码 GitHub">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.69-3.87-1.54-3.87-1.54-.52-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.51-1.46.11-3.05 0 0 .97-.31 3.18 1.18.92-.26 1.91-.39 2.89-.39.98 0 1.97.13 2.89.39 2.2-1.49 3.17-1.18 3.17-1.18.62 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.43-2.69 5.4-5.26 5.69.41.35.78 1.05.78 2.12 0 1.53-.01 2.76-.01 3.14 0 .31.21.68.8.56C20.22 21.38 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"/></svg>
+      </a>
       <button class="audio-toggle" id="audioToggleBtn" title="开启/关闭音效" aria-label="开启/关闭音效">
         <span class="audio-ico">🔇</span>
       </button>
@@ -1747,6 +1786,8 @@ function effectiveYuchiOf(e) {
 }
 
 function insertIntoGiftFeed(e, opts = {}) {
+  // 重连 backfill 与 live WS 的窗口竞争可能让同一 id 走两条路径进来, 这里兜底去重
+  if (e.id != null && giftFeed.querySelector(`.ev[data-id="${e.id}"]`)) return null;
   const c = classifyGift(e);
   if (!c.include) return null;
   const el = renderEvent(e);
@@ -1790,6 +1831,7 @@ function flashBadge() {
 // ----------- 高能 Tab -----------
 const highStream = $("highFeed");
 function appendHigh(e, opts = {}) {
+  if (e.id != null && highStream.querySelector(`.ev[data-id="${e.id}"]`)) return;
   highStream.prepend(renderEvent(e));
   while (highStream.childElementCount > STREAM_MAX) highStream.lastChild.remove();
   refreshHighCount();
