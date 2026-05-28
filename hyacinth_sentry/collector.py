@@ -139,14 +139,17 @@ class Collector:
         pandora_catalog: Dict[int, dict] | None = None,
         gift_catalog_refresher: GiftCatalogRefresher | None = None,
         catalog_refresh_min_interval: float = 300.0,
+        pandora_catalog_refresher: GiftCatalogRefresher | None = None,
     ):
         self.room_id = room_id
         self.on_event = on_event
         self.gift_catalog: Dict[int, dict] = gift_catalog or {}
         self.pandora_catalog: Dict[int, dict] = pandora_catalog or {}
         self.gift_catalog_refresher = gift_catalog_refresher
+        self.pandora_catalog_refresher = pandora_catalog_refresher
         self.catalog_refresh_min_interval = catalog_refresh_min_interval
         self._last_catalog_refresh = 0.0
+        self._last_pandora_refresh = 0.0
         self._stop = asyncio.Event()
         self._task: asyncio.Task | None = None
         self._unknown_counts: dict[str, int] = {}
@@ -174,6 +177,24 @@ class Collector:
         if catalog:
             self.gift_catalog = catalog
             log.info("refreshed gift catalog: %d gifts for room %d", len(catalog), self.room_id)
+
+    async def _refresh_pandora_catalog_if_needed(self) -> None:
+        """乾坤袋 award 池刷新: 与主 catalog 同节奏 (默认 5min), 用于斗鱼新开活动后
+        award pool 增删的场景。失败时保留旧 catalog 不抛错。"""
+        if not self.pandora_catalog_refresher:
+            return
+        now = time.monotonic()
+        if now - self._last_pandora_refresh < self.catalog_refresh_min_interval:
+            return
+        self._last_pandora_refresh = now
+        try:
+            catalog = await self.pandora_catalog_refresher()
+        except Exception as e:
+            log.warning("pandora catalog refresh failed: %s", e)
+            return
+        if catalog:
+            self.pandora_catalog = catalog
+            log.info("refreshed pandora catalog: %d pids for room %d", len(catalog), self.room_id)
 
     def _is_duplicate(self, t: str, kv: dict, ts_ms: int) -> bool:
         """Suppress same-(group, uid) events within DEDUP_WINDOW_MS for known-noisy types."""
@@ -319,6 +340,11 @@ class Collector:
                 meta = self._gift_meta(gfid, pid)
             # 主 catalog 没收录但是乾坤袋抽中礼物 (from=2, pid 在奖品池中) - fallback 到 pandora
             pandora_meta = self.pandora_catalog.get(pid) if (pid and not meta) else None
+            # 主 catalog & pandora 双 miss 且有 pid → 触发 pandora 刷新一次再查
+            # (斗鱼新开 pandora 活动时, award pool 会出现新 pid)
+            if pid and not meta and not pandora_meta:
+                await self._refresh_pandora_catalog_if_needed()
+                pandora_meta = self.pandora_catalog.get(pid)
             if not name:
                 name = meta.get("name") or (pandora_meta.get("name") if pandora_meta else None)
             if not name:

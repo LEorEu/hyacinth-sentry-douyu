@@ -200,6 +200,7 @@ async def _startup() -> None:
         gift_catalog=catalog,
         pandora_catalog=pandora,
         gift_catalog_refresher=lambda: fetch_gift_catalog(ROOM_ID),
+        pandora_catalog_refresher=lambda: fetch_pandora_catalog(ROOM_ID),
     )
     collector.start()
     _betard_task = asyncio.create_task(_betard_loop(), name=f"betard-{ROOM_ID}")
